@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="dev-seed-customers-001" author="tiegue" context="local,docker">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="customers"/>
+        </preConditions>
+
+        <insert tableName="customers">
+            <column name="first_name" value="Tiegue"/>
+            <column name="last_name" value="Zhang"/>
+            <column name="email" value="tiegue303@example.com"/>
+            <column name="phone_number" value="+1234567890"/>
+            <column name="date_of_birth" valueDate="1978-03-03"/>
+            <column name="national_id" value="123456789"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+
+        <insert tableName="customers">
+            <column name="first_name" value="Tina"/>
+            <column name="last_name" value="Mu"/>
+            <column name="email" value="tinamooh@example.com"/>
+            <column name="phone_number" value="+0987654321"/>
+            <column name="date_of_birth" valueDate="1980-05-15"/>
+            <column name="national_id" value="987654321"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+
+        <rollback>
+            <delete tableName="customers">
+                <where>email IN ('tiegue303@example.com','tinamooh@example.com')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

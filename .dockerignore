@@ -1,0 +1,42 @@
+# --- Build output ---
+target/
+*.jar
+*.war
+
+# --- VCS / CI ---
+.git/
+.gitignore
+.gitattributes
+.github/
+.gitlab-ci.yml
+
+# --- IDE / OS cruft ---
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# --- Local env & secrets (don’t send to Docker daemon) ---
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.p12
+*.keystore
+id_rsa*
+id_ed25519*
+.aws/
+
+# --- Docker/compose files not needed inside the app image ---
+docker-compose.yml
+docker-compose.*.yml
+Makefile
+ops/**
+
+# --- Logs / cache / temp ---
+*.log
+logs/
+tmp/
+.cache/

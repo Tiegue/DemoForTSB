@@ -71,8 +71,11 @@ clean-app:
 	docker rmi demofortsb:local || true
 
 # ---- Run local app with docker prometheus and grafana----
-.PHONY: dev-local dev-local-fast dev-local-jar obs-up obs-down obs-logs
+.PHONY: dev-builddev-local dev-local-fast dev-local-jar obs-up obs-down obs-logs
 
+# Only build the app with the local profile
+dev-build:
+	$(MVN) -q clean install -Dspring.profiles.active=local -Dspring.liquibase.contexts=local
 
 # Clean install (runs tests), then run from sources with the local profile
 dev-local:

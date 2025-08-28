@@ -113,7 +113,18 @@ pg_isready -U tsb -d demofortsb
 - structured logging: seq, logback
 - exception handling deal with traceid
 - health check
-- 
+
+## Structured logging desgin
+- logback: add both correlationId and businessId which shows readable info in console.
+- Seq
+### Multipole layers sensitive data solution.
+masking by MaskingConverter.class
+compare safe logging helper, and wechat procode chouchang tuoming
+- configure local and docker profiles
+local plain, docker json
+- docer
+
+
 
 
 

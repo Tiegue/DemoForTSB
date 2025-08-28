@@ -8,11 +8,13 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 
 import java.time.LocalDate;
 
 @Configuration
 @ConditionalOnProperty(value="app.seed.enabled", havingValue="true")//data initialized from liquibase
+@DependsOn("liquibase")
 public class DataInitializer {
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 

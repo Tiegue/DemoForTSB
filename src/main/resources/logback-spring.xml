@@ -1,0 +1,37 @@
+<configuration>
+    <property name="APP" value="demofortsb"/>
+    <property name="ENV" value="${spring.profiles.active:-local}"/>
+
+    <!-- Masking converter to hide sensitive fields -->
+    <conversionRule conversionWord="mask"
+                    converterClass="nz.co.tsb.demofortsb.config.logging.MaskingConverter"/>
+
+    <!-- LOCAL profile: human-readable, DEBUG logs -->
+    <springProfile name="local">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>
+                    %d{yyyy-MM-dd'T'HH:mm:ss.SSS} %-5level [%thread] %logger{36}
+                    traceId=%X{traceId:-na} corrId=%X{correlationId:-na} businessId=%X{businessId:-na} spanId=%X{spanId:-na} - %mask{%msg}%n
+                </pattern>
+            </encoder>
+        </appender>
+
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!-- DOCKER profile: structured JSON logs, INFO level -->
+    <springProfile name="docker">
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <customFields>{"app":"${APP}","env":"${ENV}"}</customFields>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </root>
+    </springProfile>
+</configuration>

@@ -116,7 +116,8 @@ pg_isready -U tsb -d demofortsb
 
 ## Structured logging desgin
 - logback: add both correlationId and businessId which shows readable info in console.
-- Seq
+- Seq with gelf, work well.
+
 ### Multipole layers sensitive data solution.
 masking by MaskingConverter.class
 compare safe logging helper, and wechat procode chouchang tuoming
@@ -124,7 +125,10 @@ compare safe logging helper, and wechat procode chouchang tuoming
 local plain, docker json
 - docer
 
-
+## todo
+- add password field and column for customer, modify related code.
+- sensitive solution
+- simple dto 
 
 
 

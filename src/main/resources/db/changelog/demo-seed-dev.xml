@@ -18,6 +18,9 @@
             <column name="date_of_birth" valueDate="1978-03-03"/>
             <column name="national_id" value="123456789"/>
             <column name="status" value="ACTIVE"/>
+            <column name="password_hash" value="$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewfY7S0ue6E.FQJe"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
         </insert>
 
         <insert tableName="customers">
@@ -28,11 +31,14 @@
             <column name="date_of_birth" valueDate="1980-05-15"/>
             <column name="national_id" value="987654321"/>
             <column name="status" value="ACTIVE"/>
+            <column name="password_hash" value="$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewfY7S0ue6E.FQJe"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
         </insert>
 
         <rollback>
             <delete tableName="customers">
-                <where>email IN ('tiegue303@example.com','tinamooh@example.com')</where>
+                <where>national_id IN ('123456789','987654321')</where>
             </delete>
         </rollback>
     </changeSet>

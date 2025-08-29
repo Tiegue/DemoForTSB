@@ -4,7 +4,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import nz.co.tsb.demofortsb.dto.ErrorResponse;
-import nz.co.tsb.demofortsb.dto.ValidationErrorResponse;
 import nz.co.tsb.demofortsb.exception.Account.InsufficientBalanceException;
 import nz.co.tsb.demofortsb.exception.Customer.CustomerHasActiveAccountsException;
 import org.slf4j.Logger;
@@ -20,21 +19,18 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
+// validation changed in new version
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandlerOld {
 
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandlerOld.class);
 
     // ========== BUSINESS LOGIC EXCEPTIONS ==========
 
@@ -163,7 +159,7 @@ public class GlobalExceptionHandler {
     // ========== VALIDATION EXCEPTIONS  ==========
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ValidationErrorResponse> handleValidationException(
+    public ResponseEntity<ErrorResponse> handleValidationException(
             MethodArgumentNotValidException ex, HttpServletRequest request) {
         String traceId = generateTraceId();
         log.warn("Validation failed [{}]: {}", traceId, ex.getMessage());
@@ -173,47 +169,65 @@ public class GlobalExceptionHandler {
             fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
 
-        String message = "Validation failed for " + fieldErrors.size() + " field(s)";
+        String message = "Validation failed: " + fieldErrors.entrySet().stream()
+                .map(entry -> entry.getKey() + " - " + entry.getValue())
+                .collect(Collectors.joining(", "));
 
-        ValidationErrorResponse error = ValidationErrorResponse.withFieldErrors(message, request.getRequestURI(), fieldErrors);
-        error.setTraceId(traceId);
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("VALIDATION_ERROR")
+                .message(message)
+                .path(request.getRequestURI())
+                .details(fieldErrors)
+                .traceId(traceId)
+                .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ValidationErrorResponse> handleConstraintViolationException(
+    public ResponseEntity<ErrorResponse> handleConstraintViolationException(
             ConstraintViolationException ex, HttpServletRequest request) {
         String traceId = generateTraceId();
         log.warn("Constraint violation [{}]: {}", traceId, ex.getMessage());
 
-        Map<String, String> fieldErrors = new HashMap<>();
+        Map<String, String> errors = new HashMap<>();
         for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
             String fieldName = violation.getPropertyPath().toString();
             String errorMessage = violation.getMessage();
-            fieldErrors.put(fieldName, errorMessage);
+            errors.put(fieldName, errorMessage);
         }
 
-        String message = "Constraint violation for " + fieldErrors.size() + " field(s)";
+        String message = "Constraint violation: " + errors.entrySet().stream()
+                .map(entry -> entry.getKey() + " - " + entry.getValue())
+                .collect(Collectors.joining(", "));
 
-        ValidationErrorResponse error = ValidationErrorResponse.withFieldErrors(message, request.getRequestURI(), fieldErrors);
-        error.setTraceId(traceId);
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("CONSTRAINT_VIOLATION")
+                .message(message)
+                .path(request.getRequestURI())
+                .details(errors)
+                .traceId(traceId)
+                .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<ValidationErrorResponse> handleValidationException(
+    public ResponseEntity<ErrorResponse> handleValidationException(
             ValidationException ex, HttpServletRequest request) {
         String traceId = generateTraceId();
         log.warn("Custom validation error [{}]: {}", traceId, ex.getMessage());
 
-        ValidationErrorResponse error = ValidationErrorResponse.withFieldErrors(
-                ex.getMessage(),
-                request.getRequestURI(),
-                ex.getFieldErrors()
-        );
-        error.setTraceId(traceId);
+        ErrorResponse error = ErrorResponse.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error("VALIDATION_ERROR")
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .details(ex.getFieldErrors())
+                .traceId(traceId)
+                .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }

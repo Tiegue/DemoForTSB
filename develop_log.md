@@ -29,8 +29,9 @@ make obs-down    # stop them
 - Implement prometheus, grafana, postgresql, app
 - Add ops directory for prometheus, grafana, postgresql
 - Add health check.
-- Add seq structured logging.
-- postgresql in docker, and h2 in local
+- Add seq structured logging with gelf
+- logback: add both correlationId and businessId which shows readable info in console.
+
 success!!!
 #### Quick checks
 ##### 1) App health
@@ -109,15 +110,34 @@ pg_isready -U tsb -d demofortsb
 \q # quit
 ```
 
-## to-do list
+## to-do list, done 
 - structured logging: seq, logback
 - exception handling deal with traceid
 - health check
 
-## Structured logging desgin
-- logback: add both correlationId and businessId which shows readable info in console.
-- Seq with gelf, work well.
+# stage 2 core logic inmplementation
+## step 2.1 update customer entity adding password field, create its DTOs
 
+ - update customer
+ - customer dtos:
+   Complete DTOs Set:
+   Request DTOs:
+
+CustomerRegistrationRequest - Full registration with all fields + password
+CustomerLoginRequest - Login using nationalId + password
+PasswordUpdateRequest - Change password with current password verification
+AdminPasswordResetRequest - Admin can reset any customer's password
+PasswordResetRequest - Forgot password using nationalId
+PasswordResetConfirmRequest - Reset password with token
+CustomerUpdateRequest - Update profile (no email/nationalId/password)
+
+Response DTOs:
+
+CustomerResponse - Safe customer data (no sensitive fields)
+LoginResponse - Login success with optional JWT token
+SuccessResponse - Generic success messages
+ErrorResponse - Generic error handling
+ValidationErrorResponse - Detailed validation errors
 ### Multipole layers sensitive data solution.
 masking by MaskingConverter.class
 compare safe logging helper, and wechat procode chouchang tuoming
@@ -128,7 +148,8 @@ local plain, docker json
 ## todo
 - add password field and column for customer, modify related code.
 - sensitive solution
-- simple dto 
+- simple dto
+#
 
 
 

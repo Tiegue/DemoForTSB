@@ -20,24 +20,26 @@
             <column name="email" type="VARCHAR(255)">
                 <constraints nullable="false" unique="true"/>
             </column>
-            <column name="phone_number" type="VARCHAR(50)"/>
+            <column name="phone_number" type="VARCHAR(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
             <column name="date_of_birth" type="DATE"/>
             <column name="national_id" type="VARCHAR(100)">
-                <constraints unique="true"/>
+                <constraints nullable="false" unique="true"/>
             </column>
             <column name="status" type="VARCHAR(20)" defaultValue="ACTIVE">
                 <constraints nullable="false"/>
             </column>
 
-            <!-- Use TIMESTAMP; set DB defaults -->
-            <column name="created_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
-            <column name="updated_at" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
-        </createTable>
+            <!-- Password hash column for BCrypt -->
+            <column name="password_hash" type="VARCHAR(60)">
+                <constraints nullable="true"/>
+            </column>
 
-        <!-- Optional: enforce allowed statuses -->
-<!--        <addCheckConstraint tableName="customers"-->
-<!--                            constraintName="chk_customers_status"-->
-<!--                            checkConstraint="status IN ('ACTIVE','FROZEN','CLOSED')"/>-->
+            <!-- Application-managed timestamps -->
+            <column name="created_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
     </changeSet>
 
 </databaseChangeLog>

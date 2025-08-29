@@ -20,6 +20,7 @@ public class CustomerBuilder {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+
     public CustomerBuilder id(Long id) {
         this.id = id;
         return this;
@@ -71,6 +72,17 @@ public class CustomerBuilder {
     }
 
     public Customer build() {
+        Customer customer = new Customer();
+        customer.setId(id);
+        customer.setFirstName(firstName);
+        customer.setLastName(lastName);
+        customer.setEmail(email);
+        customer.setPhoneNumber(phoneNumber);
+        customer.setDateOfBirth(dateOfBirth);
+        customer.setNationalId(nationalId);
+        customer.setStatus(status);
+        customer.setCreatedAt(createdAt);
+
         return new Customer(id, firstName, lastName, email, phoneNumber, dateOfBirth,
                 nationalId, status, createdAt, updatedAt);
     }

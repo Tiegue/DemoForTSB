@@ -6,8 +6,8 @@
                         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
 
     <!-- customers table -->
-    <changeSet id="1-customers" author="tiegue">
-        <createTable tableName="customers">
+    <changeSet id="1-customer" author="tiegue">
+        <createTable tableName="customer">
             <column name="id" type="BIGINT" autoIncrement="true">
                 <constraints primaryKey="true" nullable="false"/>
             </column>

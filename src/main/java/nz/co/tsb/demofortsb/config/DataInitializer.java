@@ -1,5 +1,6 @@
 package nz.co.tsb.demofortsb.config;
 
+import nz.co.tsb.demofortsb.entity.CustomerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import nz.co.tsb.demofortsb.entity.Customer;
@@ -24,7 +25,7 @@ public class DataInitializer {
             log.info("Initializing database with sample data...");
 
             // Create sample customers
-            Customer customer1 = Customer.builder()
+            Customer customer1 = CustomerBuilder.create()
                     .firstName("Tiegue")
                     .lastName("Zhang")
                     .email("tiegue303@example.com")
@@ -34,7 +35,7 @@ public class DataInitializer {
                     .status(Customer.CustomerStatus.ACTIVE)
                     .build();
 
-            Customer customer2 = Customer.builder()
+            Customer customer2 = CustomerBuilder.create()
                     .firstName("Tina")
                     .lastName("Mu")
                     .email("tinamooh@example.com")

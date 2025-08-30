@@ -7,10 +7,10 @@
 
     <changeSet id="dev-seed-customers-001" author="tiegue" context="local,docker">
         <preConditions onFail="MARK_RAN">
-            <tableExists tableName="customers"/>
+            <tableExists tableName="customer"/>
         </preConditions>
 
-        <insert tableName="customers">
+        <insert tableName="customer">
             <column name="first_name" value="Tiegue"/>
             <column name="last_name" value="Zhang"/>
             <column name="email" value="tiegue303@example.com"/>
@@ -23,7 +23,7 @@
             <column name="updated_at" valueComputed="NOW()"/>
         </insert>
 
-        <insert tableName="customers">
+        <insert tableName="customer">
             <column name="first_name" value="Tina"/>
             <column name="last_name" value="Mu"/>
             <column name="email" value="tinamooh@example.com"/>
@@ -37,7 +37,7 @@
         </insert>
 
         <rollback>
-            <delete tableName="customers">
+            <delete tableName="customer">
                 <where>national_id IN ('123456789','987654321')</where>
             </delete>
         </rollback>

@@ -117,7 +117,51 @@ pg_isready -U tsb -d demofortsb
 
 # stage 2 core logic inmplementation
 ## step 2.1 update customer entity adding password field, create its DTOs
+## step 2.2 implement sensitive data masking, and logback masking
+## step 2.3 configue openApi
+export json formate apis, can be imported to postman collection by each controller.
+http://localhost:8080/swagger-ui.html
+http://localhost:8080/v3/api-docs/customers
+#!/bin/bash
+```aiignore
 
+
+# Simple export script for development
+# Usage: ./export.sh
+
+echo "Exporting Postman collections..."
+
+# Create collections directory
+mkdir -p collections
+
+# Export customer APIs
+curl http://localhost:8080/v3/api-docs/customers > collections/customers-api.json
+echo "Customer APIs exported"
+
+# Export all APIs
+curl http://localhost:8080/v3/api-docs/all > collections/all-apis.json
+echo "All APIs exported"
+
+echo "Import the JSON files into Postman (File > Import)"
+echo "Set baseUrl = http://localhost:8080 in your Postman environment"
+```
+## step 2.4 run success, can show on grafana, req,
+##### 1) App health
+curl -s http://localhost:8080/actuator/health
+
+##### 2) Prometheus can scrape the app
+open http://localhost:9090/targets     # demofortsb-app should be UP
+open http://localhost:9090/graph        # try: up{job="demofortsb-app"}
+
+##### 3) Metrics exposed by Spring/ Micrometer
+open http://localhost:8080/actuator/prometheus
+
+##### 4) Grafana login
+open http://localhost:3000              # admin / admin
+##### 5) seq 
+structrued log.
+http://localhost:5341
+http://localhost:5341/#/events?range=7d
  - update customer
  - customer dtos:
    Complete DTOs Set:

@@ -1,12 +1,18 @@
 package nz.co.tsb.demofortsb.service;
 
-import nz.co.tsb.demofortsb.repository.CustomerRepository;
+import nz.co.tsb.demofortsb.dto.request.*;
+import nz.co.tsb.demofortsb.dto.response.CustomerResponse;
+import nz.co.tsb.demofortsb.dto.response.LoginResponse;
 import nz.co.tsb.demofortsb.entity.Customer;
-import nz.co.tsb.demofortsb.exception.Customer.CustomerNotFoundException;
-import nz.co.tsb.demofortsb.exception.Customer.CustomerAlreadyExistsException;
-import nz.co.tsb.demofortsb.exception.Customer.InvalidCustomerDataException;
+import nz.co.tsb.demofortsb.exception.ResourceNotFoundException;
+import nz.co.tsb.demofortsb.exception.ValidationException;
+import nz.co.tsb.demofortsb.repository.CustomerRepository;
+import nz.co.tsb.demofortsb.security.DataMaskingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -14,45 +20,109 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Service for customer operations including authentication and password management
+ */
 @Service
 @Transactional
 public class CustomerService {
+
     private static final Logger log = LoggerFactory.getLogger(CustomerService.class);
 
-    private final CustomerRepository customerRepository;
+    @Autowired
+    private CustomerRepository customerRepository;
 
-    public CustomerService(CustomerRepository customerRepository) {
-        this.customerRepository = customerRepository;
+    @Autowired
+    private PasswordService passwordService;
+
+    @Autowired
+    private DataMaskingService maskingService;
+
+    // ========== CUSTOMER REGISTRATION ==========
+
+    public CustomerResponse createCustomer(CustomerRegistrationRequest request) {
+        log.info("Creating new customer with nationalId: {}", request.getNationalId());
+
+        validatePasswordMatching(request.getPassword(), request.getConfirmPassword(), "Passwords do not match");
+        validateCustomerUniqueness(request.getNationalId(), request.getEmail(), request.getPhoneNumber());
+
+        Customer customer = buildCustomerFromRequest(request);
+        Customer savedCustomer = customerRepository.save(customer);
+
+        log.info("Customer created successfully with ID: {}", savedCustomer.getId());
+        return new CustomerResponse(savedCustomer);
     }
 
-    public Customer createCustomer(Customer customer) {
-        log.info("Creating new customer: {} {}", customer.getFirstName(), customer.getLastName());
+    // ========== AUTHENTICATION ==========
 
-        // Business logic validation only (Bean Validation handles @NotBlank, @Email, etc.)
-        validateBusinessRules(customer, null);
+    public LoginResponse authenticateCustomer(CustomerLoginRequest request) {
+        log.info("Authentication attempt for nationalId: {}", request.getNationalId());
 
-        try {
-            Customer savedCustomer = customerRepository.save(customer);
-            log.info("Customer created successfully with ID: {}", savedCustomer.getId());
-            return savedCustomer;
-        } catch (Exception ex) {
-            log.error("Failed to save customer: {}", ex.getMessage(), ex);
-            throw new InvalidCustomerDataException("Failed to save customer: " + ex.getMessage());
+        Customer customer = findActiveCustomerByNationalId(request.getNationalId());
+        validateCustomerHasPassword(customer);
+        validatePassword(request.getPassword(), customer.getPasswordHash(), request.getNationalId());
+
+        log.info("Authentication successful for customer ID: {}", customer.getId());
+        checkAndLogPasswordRehashNeeded(customer);
+
+        return new LoginResponse("Login successful", new CustomerResponse(customer));
+    }
+
+    // ========== PASSWORD MANAGEMENT ==========
+
+    public void updatePassword(Long customerId, PasswordUpdateRequest request) {
+        log.info("Password update request for customer ID: {}", customerId);
+
+        validatePasswordMatching(request.getNewPassword(), request.getConfirmNewPassword(), "New passwords do not match");
+
+        Customer customer = getCustomerById(customerId);
+        validateCurrentPassword(request.getCurrentPassword(), customer, customerId);
+
+        updateCustomerPassword(customer, request.getNewPassword());
+        log.info("Password updated successfully for customer ID: {}", customerId);
+    }
+
+    public void adminResetPassword(AdminPasswordResetRequest request) {
+        log.info("Admin password reset for customer ID: {}, reason: {}",
+                request.getCustomerId(), request.getReason());
+
+        Customer customer = getCustomerById(request.getCustomerId());
+        updateCustomerPassword(customer, request.getNewPassword());
+
+        log.info("Admin password reset completed for customer ID: {}", request.getCustomerId());
+    }
+
+    // ========== SMS OTP SUPPORT ==========
+
+    public Customer validateCustomerForPasswordReset(PasswordResetRequest request) {
+        log.info("Validating customer for password reset: nationalId={}, phone={}",
+                request.getNationalId(), request.getPhoneNumber());
+
+        Optional<Customer> customerOpt = customerRepository
+                .findActiveByNationalIdAndPhoneNumber(request.getNationalId(), request.getPhoneNumber());
+
+        if (!customerOpt.isPresent()) {
+            log.warn("Password reset validation failed - customer not found or phone mismatch");
+            throw new ValidationException("National ID and phone number combination not found");
         }
+
+        Customer customer = customerOpt.get();
+        log.info("Customer validated for password reset: ID={}", customer.getId());
+        return customer;
     }
 
-    /**
-     * Returns Optional - let controller decide how to handle not found
-     */
-    public Optional<Customer> getCustomerById(Long id) {
-        log.debug("Fetching customer with ID: {}", id);
+    public void resetPasswordWithOtp(PasswordResetConfirmRequest request) {
+        log.info("Password reset with OTP for nationalId: {}", request.getNationalId());
 
-        if (id == null || id <= 0) {
-            throw new InvalidCustomerDataException("Customer ID must be a positive number");
-        }
+        validatePasswordMatching(request.getNewPassword(), request.getConfirmPassword(), "Passwords do not match");
 
-        return customerRepository.findById(id);
+        Customer customer = findActiveCustomerByNationalId(request.getNationalId());
+        updateCustomerPassword(customer, request.getNewPassword());
+
+        log.info("Password reset completed for customer ID: {}", customer.getId());
     }
+
+    // ========== CUSTOMER LOOKUP ==========
 
     public List<Customer> getAllCustomers() {
         log.debug("Fetching all customers");
@@ -64,127 +134,140 @@ public class CustomerService {
         }
     }
 
-    public Customer updateCustomer(Long id, Customer updatedCustomer) {
-        log.info("Updating customer with ID: {}", id);
-
-        // Find existing customer - throw exception for update operations
-        Customer existingCustomer = getCustomerById(id)
-                .orElseThrow(() -> {
-                    log.warn("Attempted to update non-existent customer with ID: {}", id);
-                    return new CustomerNotFoundException(id);
-                });
-
-        // Business logic validation (uniqueness checks)
-        validateBusinessRules(updatedCustomer, existingCustomer);
-
-        try {
-            // Update fields - @Valid annotation already validated the input format
-            existingCustomer.setFirstName(updatedCustomer.getFirstName());
-            existingCustomer.setLastName(updatedCustomer.getLastName());
-            existingCustomer.setEmail(updatedCustomer.getEmail());
-            existingCustomer.setPhoneNumber(updatedCustomer.getPhoneNumber());
-            existingCustomer.setDateOfBirth(updatedCustomer.getDateOfBirth());
-            if (updatedCustomer.getNationalId() != null) {
-                existingCustomer.setNationalId(updatedCustomer.getNationalId());
-            }
-
-            Customer savedCustomer = customerRepository.save(existingCustomer);
-            log.info("Customer updated successfully with ID: {}", savedCustomer.getId());
-            return savedCustomer;
-        } catch (Exception ex) {
-            log.error("Failed to update customer {}: {}", id, ex.getMessage(), ex);
-            throw new InvalidCustomerDataException("Failed to update customer: " + ex.getMessage());
-        }
+    public Customer getCustomerById(Long customerId) {
+        return customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", customerId.toString()));
     }
 
-    public void deleteCustomer(Long id) {
-        log.info("Deleting customer with ID: {}", id);
+    public Customer getCustomerByNationalId(String nationalId) {
 
-        if (id == null || id <= 0) {
-            throw new InvalidCustomerDataException("Customer ID must be a positive number");
-        }
-
-        // Check if customer exists - throw exception for delete operations
-        if (!customerRepository.existsById(id)) {
-            log.warn("Attempted to delete non-existent customer with ID: {}", id);
-            throw new CustomerNotFoundException(id);
-        }
-
-        // TODO: Future enhancement - Check for active accounts
-        // if (hasActiveAccounts(id)) {
-        //     int activeCount = getActiveAccountCount(id);
-        //     log.warn("Cannot delete customer {} - has {} active accounts", id, activeCount);
-        //     throw new CustomerHasActiveAccountsException(id, activeCount);
-        // }
-
-        try {
-            customerRepository.deleteById(id);
-            log.info("Customer deleted successfully with ID: {}", id);
-        } catch (Exception ex) {
-            log.error("Failed to delete customer {}: {}", id, ex.getMessage(), ex);
-            throw new RuntimeException("Failed to delete customer", ex);
-        }
+        return customerRepository.findByNationalId(nationalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", nationalId));//
     }
 
-    public List<Customer> searchCustomers(String name) {
+    public CustomerResponse getCustomerResponseById(Long customerId) {
+        Customer customer = getCustomerById(customerId);
+        return new CustomerResponse(customer);
+    }
+
+    public CustomerResponse getCustomerResponseByNationalId(String nationalId) {
+        Customer customer = getCustomerByNationalId(nationalId);
+        return new CustomerResponse(customer);
+    }
+
+    public Page<CustomerResponse> searchCustomers(String name, Pageable pageable) {
         log.debug("Searching customers by name: {}", name);
 
-        // Input validation for search parameter (not covered by Bean Validation)
         if (!StringUtils.hasText(name)) {
-            throw new InvalidCustomerDataException("Search name cannot be empty");
+            throw new IllegalArgumentException("Name must not be empty");
         }
 
-        if (name.trim().length() < 2) {
-            throw new InvalidCustomerDataException("Search name must be at least 2 characters long");
-        }
+        Page<Customer> customers = customerRepository.searchByName(name.trim(), pageable);
+        return customers.map(CustomerResponse::new);
+    }
 
-        try {
-            return customerRepository.searchByName(name.trim());
-        } catch (Exception ex) {
-            log.error("Failed to search customers by name '{}': {}", name, ex.getMessage(), ex);
-            throw new RuntimeException("Failed to search customers", ex);
+    public void deleteCustomer(String nationalId) {
+        log.info("Deleting customer with nationalId: {}", nationalId);
+
+        Customer customer = getCustomerByNationalId(nationalId);
+        customerRepository.delete(customer);
+
+        log.info("Customer deleted successfully with nationalId: {}", nationalId);
+    }
+
+    public CustomerResponse updateCustomer(String nationalId, CustomerUpdateRequest request) {
+        log.info("Updating customer with nationalId: {}", nationalId);
+
+        Customer customer = getCustomerByNationalId(nationalId);
+
+        // Update customer fields
+        customer.setFirstName(request.getFirstName());
+        customer.setLastName(request.getLastName());
+        customer.setPhoneNumber(request.getPhoneNumber());
+        customer.setDateOfBirth(request.getDateOfBirth());
+
+        Customer updatedCustomer = customerRepository.save(customer);
+
+        log.info("Customer updated successfully with nationalId: {}", nationalId);
+        return new CustomerResponse(updatedCustomer);
+    }
+
+    // ========== PRIVATE HELPER METHODS ==========
+
+    private Customer buildCustomerFromRequest(CustomerRegistrationRequest request) {
+        Customer customer = new Customer();
+        customer.setFirstName(request.getFirstName());
+        customer.setLastName(request.getLastName());
+        customer.setEmail(request.getEmail());
+        customer.setPhoneNumber(request.getPhoneNumber());
+        customer.setDateOfBirth(request.getDateOfBirth());
+        customer.setNationalId(request.getNationalId());
+        customer.setPasswordHash(passwordService.hashPassword(request.getPassword()));
+        return customer;
+    }
+
+    private Customer findActiveCustomerByNationalId(String nationalId) {
+        return customerRepository.findActiveByNationalId(nationalId)
+                .orElseThrow(() -> new ValidationException("Invalid national ID or password"));
+    }
+
+    private void validateCustomerUniqueness(String nationalId, String email, String phoneNumber) {
+        if (customerRepository.existsByNationalId(nationalId)) {
+            throw new ValidationException("National ID already exists");
+        }
+        if (customerRepository.existsByEmail(email)) {
+            throw new ValidationException("Email address already exists");
+        }
+        if (customerRepository.existsByPhoneNumber(phoneNumber)) {
+            throw new ValidationException("Phone number already exists");
         }
     }
 
-    /**
-     * Validates business rules that Bean Validation (@Valid) cannot handle
-     * Focus on: uniqueness constraints, database integrity, business logic
-     */
-    private void validateBusinessRules(Customer customer, Customer existingCustomer) {
-        // Email uniqueness check (Bean Validation can't check database)
-        if (existingCustomer == null || !existingCustomer.getEmail().equals(customer.getEmail())) {
-            if (customerRepository.existsByEmail(customer.getEmail())) {
-                log.warn("Email already exists: {}", customer.getEmail());
-                throw new CustomerAlreadyExistsException(customer.getEmail());
-            }
+    private void validateUpdateUniqueness(Long customerId, String phoneNumber) {
+        if (customerRepository.existsByPhoneNumberAndIdNot(phoneNumber, customerId)) {
+            throw new ValidationException("Phone number already exists for another customer");
         }
-
-        // National ID uniqueness check (if provided)
-        if (customer.getNationalId() != null) {
-            if (existingCustomer == null || !customer.getNationalId().equals(existingCustomer.getNationalId())) {
-                if (customerRepository.existsByNationalId(customer.getNationalId())) {
-                    log.warn("National ID already exists: {}", customer.getNationalId());
-                    throw new CustomerAlreadyExistsException("nationalId", customer.getNationalId());
-                }
-            }
-        }
-
-        // Future business rules can be added here:
-        // - Age restrictions for certain services
-        // - Regional compliance checks
-        // - Account type eligibility validation
-        // - Complex cross-field validation rules
     }
 
-    /**
-     * Future methods for account relationship validation
-     * TODO: Implement when Account entity is added
-     */
-    // private boolean hasActiveAccounts(Long customerId) {
-    //     return accountRepository.countActiveAccountsByCustomerId(customerId) > 0;
-    // }
+    private void validatePasswordMatching(String password, String confirmPassword, String errorMessage) {
+        if (password == null || !password.equals(confirmPassword)) {
+            throw new ValidationException(errorMessage);
+        }
+    }
 
-    // private int getActiveAccountCount(Long customerId) {
-    //     return accountRepository.countActiveAccountsByCustomerId(customerId);
-    // }
+    private void validateCustomerHasPassword(Customer customer) {
+        if (customer.getPasswordHash() == null) {
+            log.warn("Authentication failed - no password set for customer: {}", customer.getNationalId());
+            throw new ValidationException("Account requires password setup");
+        }
+    }
+
+    private void validatePassword(String password, String hashedPassword, String nationalId) {
+        if (!passwordService.verifyPassword(password, hashedPassword)) {
+            log.warn("Authentication failed - invalid password for customer: {}", nationalId);
+            throw new ValidationException("Invalid national ID or password");
+        }
+    }
+
+    private void validateCurrentPassword(String currentPassword, Customer customer, Long customerId) {
+        if (customer.getPasswordHash() == null) {
+            throw new ValidationException("No current password set");
+        }
+        if (!passwordService.verifyPassword(currentPassword, customer.getPasswordHash())) {
+            log.warn("Password update failed - incorrect current password for customer ID: {}", customerId);
+            throw new ValidationException("Current password is incorrect");
+        }
+    }
+
+    private void updateCustomerPassword(Customer customer, String newPassword) {
+        String hashedPassword = passwordService.hashPassword(newPassword);
+        customer.setPasswordHash(hashedPassword);
+        customerRepository.save(customer);
+    }
+
+    private void checkAndLogPasswordRehashNeeded(Customer customer) {
+        if (passwordService.needsRehash(customer.getPasswordHash())) {
+            log.info("Password needs rehash for customer ID: {}", customer.getId());
+        }
+    }
 }

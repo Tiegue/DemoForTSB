@@ -12,7 +12,17 @@ public class MaskingConverter extends MessageConverter {
         String msg = event.getFormattedMessage();
         if (msg == null) return null;
         for (String key : SENSITIVE_KEYS) {
-            msg = msg.replaceAll("(?i)" + key + "=[^\\s]+", key + "=[PROTECTED]");
+            // Mask JSON format: "key":"value" or "key": "value"
+            msg = msg.replaceAll("\"" + key + "\"\\s*:\\s*\"([^\"]{2})([^\"]*)([^\"]{2})\"",
+                    "\"" + key + "\":\"$1****$3\"");
+
+            // Mask key=value format
+            msg = msg.replaceAll("(?i)" + key + "=([^\\s,]{2})([^\\s,]*)([^\\s,]{2})",
+                    key + "=$1****$3");
+
+            // Mask key: value format
+            msg = msg.replaceAll("(?i)" + key + ":\\s*([^\\s,]{2})([^\\s,]*)([^\\s,]{2})",
+                    key + ": $1****$3");
         }
         return msg;
     }

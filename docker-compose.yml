@@ -1,6 +1,6 @@
 
 name: demofortsb
-
+# Test Build ok, all containers run successfully at 2025-08-30 14:22:56
 services:
   # PostgreSQL database service for storing customer data
   db:

@@ -33,7 +33,7 @@
 
             <!-- Password hash column for BCrypt -->
             <column name="password_hash" type="VARCHAR(60)">
-                <constraints nullable="true"/>
+                <constraints nullable="false"/>
             </column>
 
             <!-- Application-managed timestamps -->

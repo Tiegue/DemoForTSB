@@ -39,7 +39,7 @@ public class Customer {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name = "password_hash", length = 60)
+    @Column(name = "password_hash", length = 60, nullable = false)
     private String passwordHash;
 
     // Transient field - not persisted to database
@@ -98,7 +98,7 @@ public class Customer {
     }
 
     public void setEmail(String email) {
-        this.email = email;
+        this.email = email != null ? email.toLowerCase() : null;
     }
 
     public String getPhoneNumber() {
@@ -154,6 +154,9 @@ public class Customer {
     }
 
     public void setPasswordHash(String passwordHash) {
+        if (passwordHash == null || !passwordHash.startsWith("$2a$")) {
+            throw new IllegalArgumentException("Invalid password hash");
+        }
         this.passwordHash = passwordHash;
     }
 

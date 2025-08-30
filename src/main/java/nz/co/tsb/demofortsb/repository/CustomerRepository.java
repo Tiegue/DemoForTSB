@@ -24,7 +24,8 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     @Query("SELECT c FROM Customer c WHERE c.nationalId = :nationalId AND c.status = 'ACTIVE'")
     Optional<Customer> findActiveByNationalId(@Param("nationalId") String nationalId);
 
-    Optional<Customer> findByEmail(String email);
+    @Query("SELECT c FROM Customer c WHERE LOWER(c.email) = LOWER(:email)")
+    Optional<Customer> findByEmail(@Param("email") String email);
 
     Optional<Customer> findByPhoneNumber(String phoneNumber);
 

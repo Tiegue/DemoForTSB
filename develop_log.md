@@ -115,7 +115,7 @@ pg_isready -U tsb -d demofortsb
 - exception handling deal with traceid
 - health check
 
-# stage 2 core logic inmplementation
+# stage 2 Enhancing Customer Entity with Password Security, Data Masking, OpenAPI Configuration, and Grafana Monitoring
 ## step 2.1 update customer entity adding password field, create its DTOs
 ## step 2.2 implement sensitive data masking, and logback masking
 ## step 2.3 configue openApi
@@ -145,7 +145,7 @@ echo "All APIs exported"
 echo "Import the JSON files into Postman (File > Import)"
 echo "Set baseUrl = http://localhost:8080 in your Postman environment"
 ```
-## step 2.4 run success, can show on grafana, req,
+## step 2.4 run success, can show on grafana, req,etc
 ##### 1) App health
 curl -s http://localhost:8080/actuator/health
 
@@ -183,17 +183,21 @@ SuccessResponse - Generic success messages
 ErrorResponse - Generic error handling
 ValidationErrorResponse - Detailed validation errors
 ### Multipole layers sensitive data solution.
-masking by MaskingConverter.class
-compare safe logging helper, and wechat procode chouchang tuoming
-- configure local and docker profiles
-local plain, docker json
-- docer
 
-## todo
-- add password field and column for customer, modify related code.
-- sensitive solution
-- simple dto
-#
+# Stage 3: jwt login security
+
+Login - Get JWT token
+Register - Create new users
+Role Assignment - Admin (nationalId=123456789) vs User
+Protected Endpoints - Test authentication
+
+Implementation Order:
+
+Add dependencies
+Create 4 security classes (JwtUtil, CustomUserDetailsService, JwtAuthFilter, SecurityConfig)
+Create AuthController (only login/register)
+Create TestController to verify it works
+Run tests to confirm everything works
 
 
 

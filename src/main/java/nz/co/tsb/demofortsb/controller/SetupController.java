@@ -6,6 +6,7 @@ import nz.co.tsb.demofortsb.dto.response.SuccessResponse;
 import nz.co.tsb.demofortsb.entity.Customer;
 import nz.co.tsb.demofortsb.exception.Customer.CustomerNotFoundException;
 import nz.co.tsb.demofortsb.exception.ResourceNotFoundException;
+import nz.co.tsb.demofortsb.logging.BusinessOperation;
 import nz.co.tsb.demofortsb.repository.CustomerRepository;
 import nz.co.tsb.demofortsb.security.DataMaskingService;
 import nz.co.tsb.demofortsb.security.JwtUtil;
@@ -101,6 +102,7 @@ public class SetupController {
      */
     @Operation(summary = "Check if admin password is set", description = "Check if admin password is set only for dev/demo profiles")
     @GetMapping("/admin-status")
+    @BusinessOperation("check-admin-status")
     public ResponseEntity<?> checkAdminStatus() {
         String businessId = "check-admin-status";
         MDC.put("businessId", businessId);

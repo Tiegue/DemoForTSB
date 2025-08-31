@@ -8,4 +8,6 @@
 
     <include file="demo-schema.xml" relativeToChangelogFile="true"/>
     <include file="demo-seed-dev.xml" relativeToChangelogFile="true"/>
+    <include file="account-transaction-schema.xml" relativeToChangelogFile="true"/>
+    <include file="account-transaction-seed-dev.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

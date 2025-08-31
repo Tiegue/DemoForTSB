@@ -1,0 +1,30 @@
+CREATE TABLE Account (
+    AccountID INT PRIMARY KEY AUTO_INCREMENT,
+    CustomerID INT NOT NULL,
+    AccountNumber VARCHAR(20) NOT NULL UNIQUE,
+    Balance DECIMAL(10, 2) DEFAULT 0.00,
+    CurrencyCode CHAR(3) DEFAULT 'NZD',
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP NULL,
+    FOREIGN KEY (CustomerID) REFERENCES Customers(CustomerID),
+    INDEX idx_accountnumber (AccountNumber),
+    INDEX idx_customerid (CustomerID)
+);
+
+CREATE TABLE Transaction (
+    TransactionID INT PRIMARY KEY AUTO_INCREMENT,
+    AccountID INT NOT NULL,
+    TransactionType VARCHAR(20) NOT NULL,
+    Amount DECIMAL(10, 2) NOT NULL,
+    TransactionDate DATETIME NOT NULL,
+    FromAccountID INT NULL,
+    ToAccountID INT NULL,
+    TransactionStatus VARCHAR(20) NULL,
+    CurrencyCode CHAR(3) NDEFAULT 'NZD',
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP NULL,
+    FOREIGN KEY (AccountID) REFERENCES Accounts(AccountID),
+    FOREIGN KEY (FromAccountID) REFERENCES Accounts(AccountID),
+    FOREIGN KEY (ToAccountID) REFERENCES Accounts(AccountID)
+    INDEX idx_transactiondate (TransactionDate),
+);

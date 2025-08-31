@@ -151,41 +151,6 @@ Access points:
 | **Migration** | Liquibase 4.24 | Database versioning |
 | **Container** | Docker + Compose | Containerization |
 
-## 🔧 Quick Start
-
-### Prerequisites
-- Java 21+
-- Docker & Docker Compose
-- Maven 3.9+
-
-### Local Development
-
-```bash
-# 1. Clone the repository
-git clone <repository-url>
-cd demo-for-tsb
-
-# 2. Run locally with H2 (in-memory database)
-make dev-local-fast
-
-# 3. Access the application
-open http://localhost:8080/swagger-ui.html
-```
-
-### Docker Deployment
-
-```bash
-# 1. Start full stack (app + database + monitoring)
-make up
-
-# 2. Access services
-# Application: http://localhost:8080
-# Prometheus: http://localhost:9090
-# Grafana: http://localhost:3000 (admin/admin)
-# Seq: http://localhost:5341
-
-```
-
 ## 📈 Monitoring & Observability
 
 ### Grafana Dashboards

@@ -10,4 +10,5 @@ public class CustomerNotFoundException extends ResourceNotFoundException {
     public CustomerNotFoundException(String email) {
         super("Customer not found with email: " + email, "Customer", email);
     }
+
 }

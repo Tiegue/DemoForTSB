@@ -11,21 +11,21 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import nz.co.tsb.demofortsb.dto.request.CustomerLoginRequest;
 import nz.co.tsb.demofortsb.dto.request.CustomerRegistrationRequest;
-import nz.co.tsb.demofortsb.dto.response.CustomerResponse;
+import nz.co.tsb.demofortsb.dto.response.CustomerReponse;
 import nz.co.tsb.demofortsb.dto.response.LoginResponse;
 import nz.co.tsb.demofortsb.dto.response.SuccessResponse;
 import nz.co.tsb.demofortsb.entity.Customer;
-import nz.co.tsb.demofortsb.repository.CustomerRepository;
+import nz.co.tsb.demofortsb.exception.Customer.CustomerNotFoundException;
+import nz.co.tsb.demofortsb.exception.ValidationException;
 import nz.co.tsb.demofortsb.security.CustomerUserDetailsService;
 import nz.co.tsb.demofortsb.security.JwtUtil;
+import nz.co.tsb.demofortsb.service.CustomerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.security.Principal;
+import java.util.Optional;
 
 /**
  * Authentication Controller for handling login, registration, and logout operations
@@ -55,7 +56,7 @@ public class AuthController {
     private AuthenticationManager authenticationManager;
 
     @Autowired
-    private CustomerRepository customerRepository;
+    private CustomerService customerService;
 
     @Autowired
     private CustomerUserDetailsService userDetailsService;
@@ -63,8 +64,8 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+//    @Autowired
+//    private PasswordEncoder passwordEncoder;
 
     /**
      * Login endpoint - authenticates user and issues JWT
@@ -83,14 +84,16 @@ public class AuthController {
             String email = request.getEmail().toLowerCase();
 
             // Find customer by email
-            Customer customer = customerRepository.findByEmail(email)
-                    .orElse(null);
+            Optional<Customer> customerOpt = customerService.findByEmail(email);
 
-            if (customer == null) {
+            if (customerOpt.isEmpty()) {
                 logger.warn("Login attempt with non-existent email: {}", email);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(new SuccessResponse("Invalid email or password"));
             }
+
+            Customer customer = customerOpt.get();
+
 
             // Check if customer is active
             if (!customer.isActive()) {
@@ -121,7 +124,7 @@ public class AuthController {
             long expiresIn = jwtUtil.getTokenTtlMinutes() * 60;
 
             // Create response
-            CustomerResponse customerResponse = new CustomerResponse(customer);
+            CustomerReponse customerResponse = new CustomerReponse(customer);
             LoginResponse loginResponse = new LoginResponse("Login successful", customerResponse, token, expiresIn);
 
             logger.info("Successful login for customer: {}", email);
@@ -154,41 +157,22 @@ public class AuthController {
             }
 
             // Normalize email to lowercase // ADDED
-            String email = request.getEmail().toLowerCase();
+            request.setEmail(request.getEmail().toLowerCase());
 
-            // Check if email already exists
-            if (customerRepository.existsByEmail(email)) {
-                logger.warn("Registration attempt with existing email: {}", email);
+            // Use CustomerService to create customer (it handles all validations and password encoding)
+            try {
+                CustomerReponse customerResponse = customerService.createCustomer(request);
+
+                logger.info("New customer registered: {}", request.getEmail());
+                return ResponseEntity.status(HttpStatus.CREATED)
+                        .body(new SuccessResponse("Registration successful", customerResponse));
+
+            } catch (ValidationException e) {
+                // CHANGED: CustomerService throws ValidationException for duplicate email/nationalId
+                logger.warn("Registration validation failed: {}", e.getMessage());
                 return ResponseEntity.badRequest()
-                        .body(new SuccessResponse("Email address is already registered"));
+                        .body(new SuccessResponse(e.getMessage()));
             }
-
-            // Check if nationalId already exists
-            if (customerRepository.existsByNationalId(request.getNationalId())) {
-                logger.warn("Registration attempt with existing nationalId: {}", request.getNationalId());
-                return ResponseEntity.badRequest()
-                        .body(new SuccessResponse("National ID is already registered"));
-            }
-
-            // Create new customer
-            Customer customer = new Customer();
-            customer.setFirstName(request.getFirstName());
-            customer.setLastName(request.getLastName());
-            customer.setEmail(email); // CHANGED: Use normalized email
-            customer.setNationalId(request.getNationalId());
-            customer.setPhoneNumber(request.getPhoneNumber());
-            customer.setDateOfBirth(request.getDateOfBirth());
-            customer.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-            customer.setStatus(Customer.CustomerStatus.ACTIVE);
-
-            Customer savedCustomer = customerRepository.save(customer);
-
-            // Create response
-            CustomerResponse customerResponse = new CustomerResponse(savedCustomer);
-
-            logger.info("New customer registered: {}", savedCustomer.getEmail());
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new SuccessResponse("Registration successful", customerResponse));
 
         } catch (Exception e) {
             logger.error("Unexpected error during registration for email: {}", request.getEmail(), e);
@@ -225,12 +209,14 @@ public class AuthController {
             // Invalidate the token by adding to Redis blacklist
             jwtUtil.invalidateToken(token);
 
-            // Deactivate customer account // ADDED
-            customerRepository.findByEmail(email).ifPresent(customer -> {
-                customer.setStatus(Customer.CustomerStatus.INACTIVE);
-                customerRepository.save(customer);
+            // Deactivate customer account
+            try {
+                customerService.deactivateCustomerByEmail(email);
                 logger.info("Deactivated account for email: {}", email);
-            });
+            } catch (CustomerNotFoundException e) {
+                logger.warn("Customer not found during logout for email: {}", email);
+                // Continue with logout even if customer not found
+            }
 
             // Clear security context
             SecurityContextHolder.clearContext();
@@ -278,8 +264,15 @@ public class AuthController {
             }
 
             String email = jwtUtil.extractEmail(token);
-            Customer customer = customerRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Use CustomerService to get customer
+            Optional<Customer> customerOpt = customerService.findByEmail(email);
+            if (customerOpt.isEmpty()) {
+                logger.warn("User not found during token verification: {}", email);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new SuccessResponse("User not found"));
+            }
+            Customer customer = customerOpt.get();
 
             if (!customer.isActive()) {
                 logger.warn("Token verification for inactive account: {}", email);
@@ -290,7 +283,7 @@ public class AuthController {
             // Calculate remaining token validity
             long remainingTime = jwtUtil.getRemainingTokenTimeInSeconds(token) ; // in seconds
 
-            CustomerResponse customerResponse = new CustomerResponse(customer);
+            CustomerReponse customerResponse = new CustomerReponse(customer);
             LoginResponse response = new LoginResponse("Token is valid", customerResponse, token, remainingTime);
 
             logger.info("Token verified successfully for email: {}", email);
@@ -327,14 +320,19 @@ public class AuthController {
             }
 
             String email = principal.getName().toLowerCase(); // Normalize email
-            Customer customer = customerRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
 
-            CustomerResponse customerResponse = new CustomerResponse(customer);
+            // CHANGED: Use CustomerService to get customer by email
+            try {
+                CustomerReponse customerResponse = customerService.findCustomerResponseByEmail(email);
 
-            logger.info("User information retrieved for email: {}", email);
-            return ResponseEntity.ok(new SuccessResponse("User retrieved successfully", customerResponse));
+                logger.info("User information retrieved for email: {}", email);
+                return ResponseEntity.ok(new SuccessResponse("User retrieved successfully", customerResponse));
 
+            } catch (CustomerNotFoundException e) {
+                logger.error("User not found for email: {}", email);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new SuccessResponse("User not found"));
+            }
         } catch (Exception e) {
             logger.error("Error retrieving current user for principal: {}", principal != null ? principal.getName() : "null", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

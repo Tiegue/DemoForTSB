@@ -1,16 +1,21 @@
 package nz.co.tsb.demofortsb.entity;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public class CustomerBuilder {
+    private static final Logger logger = LoggerFactory.getLogger(CustomerBuilder.class);
 
+    private Long id;
     private String firstName;
     private String lastName;
     private String email;
     private String phoneNumber;
     private String nationalId;
-    private Long id;
     private LocalDate dateOfBirth;
     private Customer.CustomerStatus status = Customer.CustomerStatus.ACTIVE;
     private LocalDateTime createdAt;
@@ -18,10 +23,12 @@ public class CustomerBuilder {
     private String passwordHash;
     private String password;
 
-    private CustomerBuilder() {}
 
-    public static CustomerBuilder create() {
-        return new CustomerBuilder();
+    public CustomerBuilder () {}
+
+    public CustomerBuilder id(Long id) {
+        this.id = id;
+        return this;
     }
 
     public CustomerBuilder firstName(String firstName) {
@@ -64,11 +71,6 @@ public class CustomerBuilder {
             throw new IllegalArgumentException("National ID cannot be null or empty");
         }
         this.nationalId = nationalId;
-        return this;
-    }
-
-    public CustomerBuilder id(Long id) {
-        this.id = id;
         return this;
     }
 
@@ -117,19 +119,11 @@ public class CustomerBuilder {
         return this;
     }
 
-    public CustomerBuilder password(String password) {
-        this.password = password;
-        return this;
-    }
 
     public Customer build() {
-        validateRequiredFields();
 
         Customer customer = new Customer();
-
-        if (id != null) {
-            customer.setId(id);
-        }
+        customer.setId(this.id);// Will be null unless explicitly set
         customer.setFirstName(firstName);
         customer.setLastName(lastName);
         customer.setEmail(email);
@@ -137,68 +131,12 @@ public class CustomerBuilder {
         customer.setNationalId(nationalId);
         customer.setDateOfBirth(dateOfBirth);
         customer.setStatus(status);
-
-        if (createdAt != null) {
-            customer.setCreatedAt(createdAt);
-        }
-        if (updatedAt != null) {
-            customer.setUpdatedAt(updatedAt);
-        }
-
-        if (passwordHash != null) {
-            customer.setPasswordHash(passwordHash);
-        }
-        if (password != null) {
-            customer.setPassword(password);
-        }
+        customer.setCreatedAt(createdAt);
+        customer.setUpdatedAt(updatedAt);
+        customer.setPasswordHash(passwordHash);
 
         return customer;
     }
 
-    public Customer buildWithConstructor() {
-        validateRequiredFields();
 
-        Customer customer = new Customer(firstName, lastName, phoneNumber, email, nationalId);
-
-        if (id != null) {
-            customer.setId(id);
-        }
-        if (dateOfBirth != null) {
-            customer.setDateOfBirth(dateOfBirth);
-        }
-        customer.setStatus(status);
-
-        if (createdAt != null) {
-            customer.setCreatedAt(createdAt);
-        }
-        if (updatedAt != null) {
-            customer.setUpdatedAt(updatedAt);
-        }
-        if (passwordHash != null) {
-            customer.setPasswordHash(passwordHash);
-        }
-        if (password != null) {
-            customer.setPassword(password);
-        }
-
-        return customer;
-    }
-
-    private void validateRequiredFields() {
-        if (firstName == null) {
-            throw new IllegalStateException("First name is required");
-        }
-        if (lastName == null) {
-            throw new IllegalStateException("Last name is required");
-        }
-        if (email == null) {
-            throw new IllegalStateException("Email is required");
-        }
-        if (phoneNumber == null) {
-            throw new IllegalStateException("Phone number is required");
-        }
-        if (nationalId == null) {
-            throw new IllegalStateException("National ID is required");
-        }
-    }
 }

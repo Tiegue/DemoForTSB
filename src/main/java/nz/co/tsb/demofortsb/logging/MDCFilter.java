@@ -12,20 +12,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-public class CorrelationFilter extends OncePerRequestFilter {
+public class MDCFilter extends OncePerRequestFilter {
 
-    // paths to skip correlation
-//    private static final Set<String> SKIP_PATHS = Set.of("/actuator/health", "/actuator/prometheus");
-//    @Override
-//    protected boolean shouldNotFilter(HttpServletRequest request) {
-//        String p = request.getRequestURI();
-//        return SKIP_PATHS.stream().anyMatch(p::startsWith);
-//    }
 
     @Override public void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws IOException, ServletException {
@@ -35,10 +27,12 @@ public class CorrelationFilter extends OncePerRequestFilter {
         String traceId = corrId.replace("-", "");
         String spanId = Optional.ofNullable(http.getHeader("X-Span-Id"))
                 .orElse(UUID.randomUUID().toString().replace("-", "").substring(0, 16));
+        String requestUri = http.getRequestURI();
 
         MDC.put("correlationId", corrId);
         MDC.put("traceId", traceId);
         MDC.put("spanId", spanId);
+        MDC.put("requestUri", requestUri);
 
         res.setHeader("X-Correlation-Id", corrId);
         res.setHeader("X-Trace-Id", traceId);

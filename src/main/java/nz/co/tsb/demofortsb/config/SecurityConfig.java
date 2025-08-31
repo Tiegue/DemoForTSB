@@ -34,8 +34,7 @@ public class SecurityConfig {
         // Create ProviderManager with our DaoAuthenticationProvider
         return new ProviderManager(daoAuthenticationProvider());
     }
-
-    @Bean
+    // Call by authenticationManager()
     public DaoAuthenticationProvider daoAuthenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(customerUserDetailsService);
@@ -73,15 +72,24 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
-                // *** MODIFIED: Updated authorization rules
+                // Set authorization rules
                 .authorizeHttpRequests(authz -> authz
                         // Public endpoints
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/auth/register").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/api/setup/**").permitAll()
+                        .requestMatchers("/favicon.ico").permitAll()
+                        .requestMatchers("/error").permitAll()
+
+                        // OpenAPI/Swagger endpoints
                         .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/swagger-ui.html").permitAll()
                         .requestMatchers("/v3/api-docs/**").permitAll()
+                        .requestMatchers("/swagger-resources/**").permitAll()
+                        .requestMatchers("/webjars/**").permitAll()
+
                         .requestMatchers("/actuator/**").permitAll()
                         // Admin endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -94,7 +102,7 @@ public class SecurityConfig {
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .formLogin(formLogin -> formLogin.disable())
 
-                // *** ADDED: JWT filter
+                // Add JWT filter
                 .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
 
 

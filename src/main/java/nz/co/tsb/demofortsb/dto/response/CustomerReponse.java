@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * DTO for customer response (never includes sensitive data)
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CustomerResponse {
+public class CustomerReponse {
 
     private Long id;
     private String firstName;
@@ -32,9 +32,9 @@ public class CustomerResponse {
     private LocalDateTime updatedAt;
 
     // Constructors
-    public CustomerResponse() {}
+    public CustomerReponse() {}
 
-    public CustomerResponse(Customer customer) {
+    public CustomerReponse(Customer customer) {
         this.id = customer.getId();
         this.firstName = customer.getFirstName();
         this.lastName = customer.getLastName();

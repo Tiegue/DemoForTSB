@@ -32,4 +32,8 @@ build/
 ### VS Code ###
 .vscode/
 .logs/
+
+### Development Log ###
 develop_log.md
+exportApi.sh
+ApiCollections/

@@ -1,9 +1,10 @@
 package nz.co.tsb.demofortsb.service;
 
-import nz.co.tsb.demofortsb.dto.request.*;
-import nz.co.tsb.demofortsb.dto.response.CustomerResponse;
-import nz.co.tsb.demofortsb.dto.response.LoginResponse;
+import nz.co.tsb.demofortsb.dto.response.CustomerReponse;
 import nz.co.tsb.demofortsb.entity.Customer;
+import nz.co.tsb.demofortsb.dto.request.*;
+import nz.co.tsb.demofortsb.entity.CustomerBuilder;
+import nz.co.tsb.demofortsb.exception.Customer.CustomerNotFoundException;
 import nz.co.tsb.demofortsb.exception.ResourceNotFoundException;
 import nz.co.tsb.demofortsb.exception.ValidationException;
 import nz.co.tsb.demofortsb.repository.CustomerRepository;
@@ -19,6 +20,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Service for customer operations including authentication and password management
@@ -40,7 +42,7 @@ public class CustomerService {
 
     // ========== CUSTOMER REGISTRATION ==========
 
-    public CustomerResponse createCustomer(CustomerRegistrationRequest request) {
+    public CustomerReponse createCustomer(CustomerRegistrationRequest request) {
         log.info("Creating new customer with nationalId: {}", request.getNationalId());
 
         validatePasswordMatching(request.getPassword(), request.getConfirmPassword(), "Passwords do not match");
@@ -50,7 +52,7 @@ public class CustomerService {
         Customer savedCustomer = customerRepository.save(customer);
 
         log.info("Customer created successfully with ID: {}", savedCustomer.getId());
-        return new CustomerResponse(savedCustomer);
+        return new CustomerReponse(savedCustomer);
     }
 
     // ========== AUTHENTICATION ==========
@@ -119,7 +121,28 @@ public class CustomerService {
             return customerRepository.findAll();
         } catch (Exception ex) {
             log.error("Failed to fetch all customers: {}", ex.getMessage(), ex);
-            throw new RuntimeException("Failed to retrieve customers", ex);
+            throw new CustomerNotFoundException("Failed to retrieve customers");
+        }
+    }
+    public List<CustomerReponse> getAllCustomersResponse() {
+        log.debug("Fetching all customers");
+        try {
+            return customerRepository.findAll().stream()
+                    .map(CustomerReponse::new)
+                    .collect(Collectors.toList());
+        } catch (Exception ex) {
+            log.error("Failed to fetch all customers: {}", ex.getMessage(), ex);
+            throw new CustomerNotFoundException("Failed to retrieve customers");
+        }
+    }
+
+    public List<Customer> getAllCustomersForDebugging() {
+        log.debug("Fetching all customers info for debugging");
+        try {
+            return customerRepository.findAll();
+        } catch (Exception ex) {
+            log.error("Failed to fetch all customers: {}", ex.getMessage(), ex);
+            throw new CustomerNotFoundException("Failed to retrieve customers");
         }
     }
 
@@ -134,17 +157,17 @@ public class CustomerService {
                 .orElseThrow(() -> new ResourceNotFoundException("Customer", nationalId));//
     }
 
-    public CustomerResponse getCustomerResponseById(Long customerId) {
+    public CustomerReponse getCustomerResponseById(Long customerId) {
         Customer customer = getCustomerById(customerId);
-        return new CustomerResponse(customer);
+        return new CustomerReponse(customer);
     }
 
-    public CustomerResponse getCustomerResponseByNationalId(String nationalId) {
+    public CustomerReponse getCustomerResponseByNationalId(String nationalId) {
         Customer customer = getCustomerByNationalId(nationalId);
-        return new CustomerResponse(customer);
+        return new CustomerReponse(customer);
     }
 
-    public Page<CustomerResponse> searchCustomers(String name, Pageable pageable) {
+    public Page<CustomerReponse> searchCustomers(String name, Pageable pageable) {
         log.debug("Searching customers by name: {}", name);
 
         if (!StringUtils.hasText(name)) {
@@ -152,7 +175,7 @@ public class CustomerService {
         }
 
         Page<Customer> customers = customerRepository.searchByName(name.trim(), pageable);
-        return customers.map(CustomerResponse::new);
+        return customers.map(CustomerReponse::new);
     }
 
     public void deleteCustomer(String nationalId) {
@@ -164,7 +187,7 @@ public class CustomerService {
         log.info("Customer deleted successfully with nationalId: {}", nationalId);
     }
 
-    public CustomerResponse updateCustomer(String nationalId, CustomerUpdateRequest request) {
+    public CustomerReponse updateCustomer(String nationalId, CustomerUpdateRequest request) {
         log.info("Updating customer with nationalId: {}", nationalId);
 
         Customer customer = getCustomerByNationalId(nationalId);
@@ -178,21 +201,46 @@ public class CustomerService {
         Customer updatedCustomer = customerRepository.save(customer);
 
         log.info("Customer updated successfully with nationalId: {}", nationalId);
-        return new CustomerResponse(updatedCustomer);
+        return new CustomerReponse(updatedCustomer);
+    }
+
+    public Optional<Customer> findByEmail(String email) {
+        return customerRepository.findByEmail(email.toLowerCase());
+    }
+
+    public CustomerReponse findCustomerResponseByEmail(String email) {
+        Customer customer = findByEmail(email)
+                .orElseThrow(() -> new CustomerNotFoundException(email));
+        return new CustomerReponse(customer);
+    }
+
+    public void deactivateCustomerByEmail(String email) {
+        Customer customer = findByEmail(email)
+                .orElseThrow(() -> new CustomerNotFoundException(email));
+        customer.setStatus(Customer.CustomerStatus.INACTIVE);
+        customerRepository.save(customer);
+    }
+
+    public boolean isCustomerActive(String email) {
+        return findByEmail(email)
+                .map(Customer::isActive)
+                .orElse(false);
     }
 
     // ========== PRIVATE HELPER METHODS ==========
 
     private Customer buildCustomerFromRequest(CustomerRegistrationRequest request) {
-        Customer customer = new Customer();
-        customer.setFirstName(request.getFirstName());
-        customer.setLastName(request.getLastName());
-        customer.setEmail(request.getEmail());
-        customer.setPhoneNumber(request.getPhoneNumber());
-        customer.setDateOfBirth(request.getDateOfBirth());
-        customer.setNationalId(request.getNationalId());
-        customer.setPasswordHash(passwordService.hashPassword(request.getPassword()));
-        return customer;
+        CustomerBuilder builder = new CustomerBuilder();
+
+        return builder
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .email(request.getEmail())
+                .phoneNumber(request.getPhoneNumber())
+                .dateOfBirth(request.getDateOfBirth())
+                .nationalId(request.getNationalId())
+                .passwordHash(passwordService.hashPassword(request.getPassword()))
+                .build();
     }
 
     private Customer findActiveCustomerByNationalId(String nationalId) {

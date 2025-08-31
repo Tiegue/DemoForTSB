@@ -1,12 +1,11 @@
 package nz.co.tsb.demofortsb.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import nz.co.tsb.demofortsb.dto.request.*;
-import nz.co.tsb.demofortsb.dto.response.CustomerResponse;
-import nz.co.tsb.demofortsb.dto.response.LoginResponse;
+import nz.co.tsb.demofortsb.dto.response.CustomerReponse;
 import nz.co.tsb.demofortsb.dto.response.SuccessResponse;
 import nz.co.tsb.demofortsb.entity.Customer;
 import nz.co.tsb.demofortsb.service.CustomerService;
@@ -17,16 +16,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import jakarta.validation.constraints.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/customers")
+@SecurityRequirement(name = "bearerAuth") // Apply JWT requirement to all methods in this controller
 @Tag(name = "Customers", description = "Customer management APIs")
 public class CustomerController {
 
@@ -35,14 +32,27 @@ public class CustomerController {
     @Autowired
     private CustomerService customerService;
 
+    @Operation(summary = "Get all customers with all info for debugging")
+    @GetMapping("/allinfo")
+    public ResponseEntity<List<Customer>> getAllCustomersForDebugging() {
+        String businessId = "get-all-customers";
+        MDC.put("businessId", businessId);
+        logger.info("Get all customers request");
+
+        List<Customer> customers = customerService.getAllCustomersForDebugging();
+
+        logger.info("Get all customers completed successfully, count: {}", customers.size());
+        return ResponseEntity.ok(customers);
+    }
+
     @Operation(summary = "Get customer by internal ID")
     @GetMapping("/id/{id}")
-    public ResponseEntity<CustomerResponse> getCustomerById(@PathVariable Long id) {
+    public ResponseEntity<CustomerReponse> getCustomerById(@PathVariable Long id) {
         String businessId = "get-customer-by-id";
         MDC.put("businessId", businessId);
         logger.info("Get customer by ID request: {}", id);
 
-        CustomerResponse response = customerService.getCustomerResponseById(id);
+        CustomerReponse response = customerService.getCustomerResponseById(id);
 
         logger.info("Get customer by ID completed successfully");
         return ResponseEntity.ok(response);
@@ -50,25 +60,26 @@ public class CustomerController {
 
     @Operation(summary = "Get all customers for debugging")
     @GetMapping
-    public ResponseEntity<List<Customer>> getAllCustomers() {
+    public ResponseEntity<List<CustomerReponse>> getAllCustomers() {
         String businessId = "get-all-customers";
         MDC.put("businessId", businessId);
         logger.info("Get all customers request");
 
-        List<Customer> customers = customerService.getAllCustomers();
+        List<CustomerReponse> customersResponse = customerService.getAllCustomersResponse();
 
-        logger.info("Get all customers completed successfully, count: {}", customers.size());
-        return ResponseEntity.ok(customers);
+        logger.info("Get all customers completed successfully, count: {}", customersResponse.size());
+        return ResponseEntity.ok(customersResponse);
     }
+
 
     @Operation(summary = "Get customer by national ID")
     @GetMapping("/{nationalId}")
-    public ResponseEntity<CustomerResponse> getCustomerByNationalId(@PathVariable String nationalId) {
+    public ResponseEntity<CustomerReponse> getCustomerByNationalId(@PathVariable String nationalId) {
         String businessId = "get-customer-by-national-id";
         MDC.put("businessId", businessId);
         logger.info("Get customer by national ID request: {}", nationalId);
 
-        CustomerResponse response = customerService.getCustomerResponseByNationalId(nationalId);
+        CustomerReponse response = customerService.getCustomerResponseByNationalId(nationalId);
 
         logger.info("Get customer by national ID completed successfully");
         return ResponseEntity.ok(response);
@@ -76,14 +87,14 @@ public class CustomerController {
 
     @Operation(summary = "Update customer profile")
     @PutMapping("/{nationalId}")
-    public ResponseEntity<CustomerResponse> updateCustomer(
+    public ResponseEntity<CustomerReponse> updateCustomer(
             @PathVariable String nationalId,
             @Valid @RequestBody CustomerUpdateRequest request) {
         String businessId = "update-customer";
         MDC.put("businessId", businessId);
         logger.info("Update customer request for nationalId: {}", nationalId);
 
-        CustomerResponse response = customerService.updateCustomer(nationalId, request);
+        CustomerReponse response = customerService.updateCustomer(nationalId, request);
 
         logger.info("Update customer completed successfully");
         return ResponseEntity.ok(response);
@@ -104,7 +115,7 @@ public class CustomerController {
 
     @Operation(summary = "Search customers by name")
     @GetMapping("/search")
-    public ResponseEntity<Page<CustomerResponse>> searchCustomers(
+    public ResponseEntity<Page<CustomerReponse>> searchCustomers(
             @RequestParam String name,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -113,7 +124,7 @@ public class CustomerController {
         logger.info("Search customers request for name: {}, page: {}, size: {}", name, page, size);
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<CustomerResponse> customers = customerService.searchCustomers(name, pageable);
+        Page<CustomerReponse> customers = customerService.searchCustomers(name, pageable);
 
         logger.info("Search customers completed successfully, found: {} results", customers.getTotalElements());
         return ResponseEntity.ok(customers);

@@ -6,19 +6,19 @@ package nz.co.tsb.demofortsb.dto.response;
 public class LoginResponse {
 
     private String message;
-    private CustomerResponse customer;
+    private CustomerReponse customer;
     private String token; // JWT token if using JWT authentication
     private Long expiresIn; // Token expiration time in seconds
 
     // Constructors
     public LoginResponse() {}
 
-    public LoginResponse(String message, CustomerResponse customer) {
+    public LoginResponse(String message, CustomerReponse customer) {
         this.message = message;
         this.customer = customer;
     }
 
-    public LoginResponse(String message, CustomerResponse customer, String token, Long expiresIn) {
+    public LoginResponse(String message, CustomerReponse customer, String token, Long expiresIn) {
         this.message = message;
         this.customer = customer;
         this.token = token;
@@ -34,11 +34,11 @@ public class LoginResponse {
         this.message = message;
     }
 
-    public CustomerResponse getCustomer() {
+    public CustomerReponse getCustomer() {
         return customer;
     }
 
-    public void setCustomer(CustomerResponse customer) {
+    public void setCustomer(CustomerReponse customer) {
         this.customer = customer;
     }
 

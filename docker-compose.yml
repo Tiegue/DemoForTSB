@@ -60,9 +60,9 @@ services:
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
 
       # Redis Configuration
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-redis123}
 
       # JWT Security Configuration
       JWT_SECRET: ${JWT_SECRET:-DemoForTsBSecretKeyMustBeAtLeast256BitsLongForHS256Algorithm2024}

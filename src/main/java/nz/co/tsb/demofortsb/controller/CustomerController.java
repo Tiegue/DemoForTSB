@@ -35,32 +35,6 @@ public class CustomerController {
     @Autowired
     private CustomerService customerService;
 
-    @Operation(summary = "Register a new customer")
-    @PostMapping("/register")
-    public ResponseEntity<CustomerResponse> register(@Valid @RequestBody CustomerRegistrationRequest request) {
-        String businessId = "customer-registration";
-        MDC.put("businessId", businessId);
-        logger.info("Customer registration request for nationalId: {}", request.getNationalId());
-
-        CustomerResponse response = customerService.createCustomer(request);
-
-        logger.info("Customer registration completed successfully");
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    @Operation(summary = "Customer login authentication")
-    @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody CustomerLoginRequest request) {
-        String businessId = "customer-login";
-        MDC.put("businessId", businessId);
-        logger.info("Customer login request for nationalId: {}", request.getNationalId());
-
-        LoginResponse response = customerService.authenticateCustomer(request);
-
-        logger.info("Customer login completed successfully");
-        return ResponseEntity.ok(response);
-    }
-
     @Operation(summary = "Get customer by internal ID")
     @GetMapping("/id/{id}")
     public ResponseEntity<CustomerResponse> getCustomerById(@PathVariable Long id) {

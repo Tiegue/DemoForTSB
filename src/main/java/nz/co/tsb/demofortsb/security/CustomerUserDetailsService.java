@@ -41,14 +41,14 @@ public class CustomerUserDetailsService implements UserDetailsService {
 
         String role = ADMIN_NATIONAL_ID.equals(customer.getNationalId()) ? "ROLE_ADMIN" : "ROLE_USER";
 
-        return builder()
+        return User.builder()
                 .username(customer.getEmail())
                 .password(customer.getPasswordHash())
                 .authorities(role)
-                .accountNonLocked(true)
-                .accountNonExpired(true)
-                .credentialsNonExpired(true)
-                .enabled(true)
+                .accountLocked(false)
+                .accountExpired(false)
+                .credentialsExpired(false)
+                .disabled(false)
                 .build();
     }
 

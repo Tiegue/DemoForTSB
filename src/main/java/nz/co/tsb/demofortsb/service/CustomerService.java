@@ -55,18 +55,7 @@ public class CustomerService {
 
     // ========== AUTHENTICATION ==========
 
-    public LoginResponse authenticateCustomer(CustomerLoginRequest request) {
-        log.info("Authentication attempt for nationalId: {}", request.getNationalId());
-
-        Customer customer = findActiveCustomerByNationalId(request.getNationalId());
-        validateCustomerHasPassword(customer);
-        validatePassword(request.getPassword(), customer.getPasswordHash(), request.getNationalId());
-
-        log.info("Authentication successful for customer ID: {}", customer.getId());
-        checkAndLogPasswordRehashNeeded(customer);
-
-        return new LoginResponse("Login successful", new CustomerResponse(customer));
-    }
+// MOVED TO AUTHCONTROLLER
 
     // ========== PASSWORD MANAGEMENT ==========
 

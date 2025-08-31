@@ -4,34 +4,35 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 
 /**
- * DTO for customer login (using nationalId as identifier)
+ * DTO for customer login (using email as identifier)
  */
 public class CustomerLoginRequest {
-    @NotBlank(message = "National ID is required")
-    @Size(max = 20, message = "National ID must not exceed 20 characters")
-    private String nationalId;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Please provide a valid email address")
+    @Size(max = 100, message = "Email must not exceed 100 characters")
+    private String email;
 
     @NotBlank(message = "Password is required")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
     private String password;
-
-    private boolean rememberMe = false;
 
     // Constructors
     public CustomerLoginRequest() {}
 
-    public CustomerLoginRequest(String nationalId, String password) {
-        this.nationalId = nationalId;
+    public CustomerLoginRequest(String email, String password) {
+        this.email = email;
         this.password = password;
     }
 
     // Getters and Setters
-    public String getNationalId() {
-        return nationalId;
+    public String getEmail() {
+        return email;
     }
 
-    public void setNationalId(String nationalId) {
-        this.nationalId = nationalId;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getPassword() {
@@ -42,11 +43,4 @@ public class CustomerLoginRequest {
         this.password = password;
     }
 
-    public boolean isRememberMe() {
-        return rememberMe;
-    }
-
-    public void setRememberMe(boolean rememberMe) {
-        this.rememberMe = rememberMe;
-    }
 }

@@ -51,7 +51,7 @@ public class SetupController {
 
     /**
      * Set or update admin password
-     * Example: POST /api/setup/admin-password?password=Admin123!
+     * Example: POST /api/setup/admin-password?password=password123!
      */
     @PostMapping("/admin-password")
     @Operation(summary = "Set or update admin password", description = "Set or update admin password only for dev/demo profiles")

@@ -53,49 +53,49 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         // Disable Security
-        http
-                .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/h2-console/**").permitAll()
-                        .anyRequest().permitAll()  // Allow all requests without authentication
-                )
-                .csrf(csrf -> csrf.disable())  // Disable CSRF for REST APIs
-                .httpBasic(httpBasic -> httpBasic.disable())  // Disable HTTP Basic Auth
-                .formLogin(formLogin -> formLogin.disable());  // Disable form login
+//        http
+//                .authorizeHttpRequests(authz -> authz
+//                        .requestMatchers("/h2-console/**").permitAll()
+//                        .anyRequest().permitAll()  // Allow all requests without authentication
+//                )
+//                .csrf(csrf -> csrf.disable())  // Disable CSRF for REST APIs
+//                .httpBasic(httpBasic -> httpBasic.disable())  // Disable HTTP Basic Auth
+//                .formLogin(formLogin -> formLogin.disable());  // Disable form login
 
 
         // Enable Security
-//        http
-//                // Configure authentication provider
-//                .authenticationProvider(daoAuthenticationProvider())
-//
-//                // Session management for JWT
-//                .sessionManagement(session -> session
-//                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-//                )
-//
-//                // *** MODIFIED: Updated authorization rules
-//                .authorizeHttpRequests(authz -> authz
-//                        // Public endpoints
-//                        .requestMatchers("/h2-console/**").permitAll()
-//                        .requestMatchers("/api/auth/login").permitAll()
-//                        .requestMatchers("/api/auth/register").permitAll()
-//                        .requestMatchers("/api/public/**").permitAll()
-//                        .requestMatchers("/swagger-ui/**").permitAll()
-//                        .requestMatchers("/v3/api-docs/**").permitAll()
-//                        .requestMatchers("/actuator/**").permitAll()
-//                        // Admin endpoints
-//                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-//                        // User endpoints
-//                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
-//                        // All other endpoints require authentication
-//                        .anyRequest().authenticated() // From permitAll() to authenticated()
-//                )
-//                .csrf(csrf -> csrf.disable())
-//                .httpBasic(httpBasic -> httpBasic.disable())
-//                .formLogin(formLogin -> formLogin.disable())
-//
-//                // *** ADDED: JWT filter
-//                .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+        http
+                // Configure authentication provider
+                .authenticationProvider(daoAuthenticationProvider())
+
+                // Session management for JWT
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                // *** MODIFIED: Updated authorization rules
+                .authorizeHttpRequests(authz -> authz
+                        // Public endpoints
+                        .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers("/api/auth/register").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/swagger-ui/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
+                        // Admin endpoints
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // User endpoints
+                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+                        // All other endpoints require authentication
+                        .anyRequest().authenticated() // From permitAll() to authenticated()
+                )
+                .csrf(csrf -> csrf.disable())
+                .httpBasic(httpBasic -> httpBasic.disable())
+                .formLogin(formLogin -> formLogin.disable())
+
+                // *** ADDED: JWT filter
+                .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
 
 
 

@@ -18,7 +18,7 @@
             <column name="date_of_birth" valueDate="1978-03-03"/>
             <column name="national_id" value="123456789"/>
             <column name="status" value="ACTIVE"/>
-            <column name="password_hash" value="$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewfY7S0ue6E.FQJe"/>
+            <column name="password_hash" value="$2a$12$Rn0.OZsB.WWH0YzNrsyHAuw6.8T5yhed10EF14Q2JHCV2FI.l1EMm"/>
             <column name="created_at" valueComputed="NOW()"/>
             <column name="updated_at" valueComputed="NOW()"/>
         </insert>

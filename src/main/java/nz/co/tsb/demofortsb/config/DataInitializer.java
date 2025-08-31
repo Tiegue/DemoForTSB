@@ -1,46 +1,56 @@
 package nz.co.tsb.demofortsb.config;
 
+import jakarta.annotation.PostConstruct;
+import nz.co.tsb.demofortsb.dto.response.CustomerReponse;
 import nz.co.tsb.demofortsb.entity.CustomerBuilder;
+import nz.co.tsb.demofortsb.service.CustomerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import nz.co.tsb.demofortsb.entity.Customer;
 import nz.co.tsb.demofortsb.repository.CustomerRepository;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 
-import nz.co.tsb.demofortsb.entity.Customer;
-import nz.co.tsb.demofortsb.repository.CustomerRepository;
 import nz.co.tsb.demofortsb.service.PasswordService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
+import java.util.Optional;
 
-@Configuration
+@Component
 //@ConditionalOnProperty(value="app.seed.enabled", havingValue="true")//data initialized from liquibase
-@DependsOn("liquibase")
+//@DependsOn("liquibase")
+
 public class DataInitializer implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(DataInitializer.class);
 
-    @Autowired
-    private CustomerRepository customerRepository;
+    public DataInitializer() {
+        logger.info("DataInitializer initialized");
+    }
+
+    @PostConstruct
+    public void init() {
+        logger.info("DataInitializer @PostConstruct called!");
+    }
+
+
 
     @Autowired
     private PasswordService passwordService;
 
+    @Autowired
+    private CustomerService customerService;
+
     @Value("${WT_ADMIN_NATIONAL_ID:123456789}")
     private String adminNationalId;
 
-    @Value("${ADMIN_DEFAULT_PASSWORD:Admin123!}")
+    @Value("${ADMIN_DEFAULT_PASSWORD:password123!}")
     private String defaultAdminPassword;
 
     @Value("${AUTO_INIT_ADMIN_PASSWORD:true}")
@@ -48,7 +58,20 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        System.out.println("DATAINITIALIZER IS RUNNING!!!");
+        logger.info("Initializing default admin user password");
 
+        initAdminPassword();
+        generateDefaultPasswordHash();
+        setTinaPassword();
+
+        logger.info("Default admin and user password initialized successfully");
+        System.out.println("DATAINITIALIZER IS FINISHED!!!");
+
+    }
+
+
+    private void initAdminPassword() {
         // Auto-initialization of admin password is disabled
         if (!autoInitAdminPassword) {
             logger.info("Auto-initialization of admin password is disabled");
@@ -57,7 +80,8 @@ public class DataInitializer implements CommandLineRunner {
 
         try {
             // Check if admin exists
-            Customer admin = customerRepository.findByNationalId(adminNationalId).orElse(null);
+            Customer admin = null;
+            admin = customerService.getCustomerByNationalId(adminNationalId);
 
             if (admin == null) {
                 logger.warn("Admin user with nationalId {} not found. Skipping password initialization.",
@@ -65,43 +89,18 @@ public class DataInitializer implements CommandLineRunner {
                 return;
             }
 
-            // Check if password needs to be set
-            boolean needsPassword = admin.getPasswordHash() == null ||
-                    admin.getPasswordHash().isEmpty() ||
-                    admin.getPasswordHash().equals("CHANGE_ME");
+            // Set default password using PasswordService (BCrypt strength 12)
+            String hashedPassword = passwordService.hashPassword(defaultAdminPassword);
+            customerService.updateCustomerPassword(adminNationalId, hashedPassword);
 
-            if (needsPassword) {
-                logger.info("Initializing admin password for user: {}", admin.getEmail());
+            logger.info("=====================================");
+            logger.info("Admin password initialized successfully");
+            logger.info("AdminUserAsEmail: {}", admin.getEmail());
+            logger.info("Default Password: {}", defaultAdminPassword);
+            logger.info("Please change this password after first login!");
+            logger.info("=====================================");
 
-                // Set default password using PasswordService (BCrypt strength 12)
-                String hashedPassword = passwordService.hashPassword(defaultAdminPassword);
-                admin.setPasswordHash(hashedPassword);
 
-                // Ensure admin is active
-                if (!admin.isActive()) {
-                    admin.setStatus(Customer.CustomerStatus.ACTIVE);
-                    logger.info("Activating admin account");
-                }
-
-                customerRepository.save(admin);
-
-                logger.info("=====================================");
-                logger.info("Admin password initialized successfully");
-                logger.info("AdminUserAsEmail: {}", admin.getEmail());
-                logger.info("Default Password: {}", defaultAdminPassword);
-                logger.info("Please change this password after first login!");
-                logger.info("=====================================");
-
-            } else {
-                // Check if password needs rehashing (upgrade from BCrypt 10 to 12)
-                if (passwordService.needsRehash(admin.getPasswordHash())) {
-                    logger.info("Admin password needs rehashing for security upgrade");
-                    // Note: Can't rehash without knowing the plain password
-                    // User will get new hash on next password change
-                }
-
-                logger.info("Admin user already has password set for: {}", admin.getEmail());
-            }
 
         } catch (Exception e) {
             logger.error("Failed to initialize admin password", e);
@@ -109,38 +108,32 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
-    // =====  Commented as Liquibase is used for data initialization
-//    @Bean
-//    CommandLineRunner initDatabase(CustomerRepository customerRepository) {
-//        return args -> {
-//            logger.info("Initializing database with sample data...");
-//
-//            // Create sample customers
-//            Customer customer1 = CustomerBuilder.create()
-//                    .firstName("Tiegue")
-//                    .lastName("Zhang")
-//                    .email("tiegue303@example.com")
-//                    .phoneNumber("+1234567890")
-//                    .dateOfBirth(LocalDate.of(1978, 3, 3))
-//                    .nationalId("123456789")
-//                    .status(Customer.CustomerStatus.ACTIVE)
-//                    .build();
-//
-//            Customer customer2 = CustomerBuilder.create()
-//                    .firstName("Tina")
-//                    .lastName("Mu")
-//                    .email("tinamooh@example.com")
-//                    .phoneNumber("+0987654321")
-//                    .dateOfBirth(LocalDate.of(1980, 5, 15))
-//                    .nationalId("987654321")
-//                    .status(Customer.CustomerStatus.ACTIVE)
-//                    .build();
-//
-//            customerRepository.save(customer1);
-//            customerRepository.save(customer2);
-//
-//            logger.info("Sample data initialized successfully!");
-//            logger.info("Total customers in database: {}", customerRepository.count());
-//        };
-//    }
+    private void generateDefaultPasswordHash() {
+        String plainPassword = "password123!";
+        // Set default password using PasswordService (BCrypt strength 12)
+        String hashedPassword = passwordService.hashPassword(defaultAdminPassword);
+
+        logger.info("================================================");
+        logger.info("BCrypt Password Hash (Strength 12)");
+        logger.info("================================================");
+        logger.info("Plain: {}", plainPassword);
+        logger.info("Hash: {}", hashedPassword);
+        logger.info("================================================");
+    }
+
+    //Just for testing and debugging
+    private void setTinaPassword() {
+        try {
+            Optional<Customer> tinaOpt = customerService.findByEmail("tinamooh@example.com");
+            if (tinaOpt.isPresent()) {
+                String hashedPassword = passwordService.hashPassword("password123!");
+                Customer tina = tinaOpt.get();
+                customerService.updateCustomerPassword(tina.getNationalId(), hashedPassword);
+                logger.info("Password set for tinamooh@example.com");
+            }
+        } catch (Exception e) {
+            logger.error("Failed to set Tina's password", e);
+        }
+    }
+
 }

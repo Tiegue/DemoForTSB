@@ -4,7 +4,7 @@
 
     <!-- Masking converter to hide sensitive fields -->
     <conversionRule conversionWord="mask"
-                    converterClass="nz.co.tsb.demofortsb.config.logging.MaskingConverter"/>
+                    converterClass="nz.co.tsb.demofortsb.logging.MaskingConverter"/>
 
     <!-- LOCAL profile: human-readable, DEBUG logs -->
     <springProfile name="local">

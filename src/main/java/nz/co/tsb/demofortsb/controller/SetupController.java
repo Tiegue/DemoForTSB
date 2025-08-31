@@ -28,7 +28,7 @@ import java.util.Map;
  * Setup controller for initial configuration
  * Only active in dev/demo profiles for security
  */
-@Tag(name = "Setup", description = "Initial setup and configuration endpoints for development environment")
+@Tag(name = "Setup", description = "Initial setup and configuration endpoints for development environment, and then remove it")
 @RestController
 @RequestMapping("/api/setup")
 @Profile({"dev", "demo", "local", "docker"}) // Only available in non-production environments

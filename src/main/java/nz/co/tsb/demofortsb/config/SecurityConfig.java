@@ -79,9 +79,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/auth/register").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
-                        .requestMatchers("/api/setup/**").permitAll()
                         .requestMatchers("/favicon.ico").permitAll()
                         .requestMatchers("/error").permitAll()
+
+                        // Only for dev stage, and then remove them
+                        .requestMatchers("/api/setup/**").permitAll()
+                        .requestMatchers("/api/customers/allinfo").permitAll()
+
 
                         // OpenAPI/Swagger endpoints
                         .requestMatchers("/swagger-ui/**").permitAll()
@@ -91,10 +95,10 @@ public class SecurityConfig {
                         .requestMatchers("/webjars/**").permitAll()
 
                         .requestMatchers("/actuator/**").permitAll()
-                        // Admin endpoints
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        // User endpoints
-                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+                        // Only admin can get all customers
+                        .requestMatchers("/api/customers/admin").hasRole("ADMIN")
+                        // Customer endpoints
+                        .requestMatchers("/api/customers/**").hasAnyRole("USER", "ADMIN")
                         // All other endpoints require authentication
                         .anyRequest().authenticated() // From permitAll() to authenticated()
                 )

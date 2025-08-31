@@ -1,4 +1,4 @@
-package nz.co.tsb.demofortsb.config.logging;
+package nz.co.tsb.demofortsb.logging;
 
 import ch.qos.logback.classic.pattern.MessageConverter;
 import ch.qos.logback.classic.spi.ILoggingEvent;

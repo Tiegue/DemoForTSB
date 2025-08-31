@@ -24,7 +24,7 @@ public class JwtUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
 
-    @Value("${JWT_SECRET:DemoForTsBSecretKeyMustBeAtLeast256BitsLongForHS256Algorithm2024}") // default
+    @Value("${JWT_SECRET:$2a$12$Rn0.OZsB.WWH0YzNrsyHAuw6.8T5yhed10EF14Q2JHCV2FI.l1EMm}") // default
     private String SECRET;
 
     @Value("${JWT_TTL_MINUTES:60}") // default 60 minutes
@@ -80,12 +80,13 @@ public class JwtUtil {
      * @param email User's email
      * @return JWT token for password reset
      */
-    public String generatePasswordResetToken(String email) {
+    public String generatePasswordResetToken(String email, String nationalId) {
         String jti = UUID.randomUUID().toString();
         long resetTokenExpiration = RESET_TOKEN_TTL_MINUTES * MINUTES_TO_MILLIS; // 15 minutes for password reset
         return Jwts.builder()
                 .setSubject(email)
                 .claim("type", "PASSWORD_RESET")
+                .claim("nationalId", nationalId)
                 .setId(jti)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + resetTokenExpiration))

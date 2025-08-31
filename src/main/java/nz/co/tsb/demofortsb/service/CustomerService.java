@@ -83,6 +83,14 @@ public class CustomerService {
         log.info("Admin password reset completed for customer ID: {}", request.getCustomerId());
     }
 
+    // Only used for admin password initialization
+    public void updateCustomerPassword(String nationalId, String hashedPassword) {
+        Customer customer = getCustomerByNationalId(nationalId);
+        customer.setPasswordHash(hashedPassword);
+        customerRepository.save(customer);
+        log.info("Password updated for customer with nationalId: {}", nationalId);
+    }
+
     // ========== SMS OTP SUPPORT ==========
 
     public Customer validateCustomerForPasswordReset(PasswordResetRequest request) {

@@ -36,7 +36,7 @@
             </encoder>
         </appender>
 
-        <!-- Seq via GELF (UDP). Switch to GelfTcpAppender if you expose TCP. -->
+        <!-- Seq via GELF (UDP). Switch to GelfAppender if you expose TCP. -->
         <appender name="GELF" class="de.siegmar.logbackgelf.GelfUdpAppender">
             <graylogHost>${GELF_HOST}</graylogHost>
             <graylogPort>${GELF_PORT}</graylogPort>

@@ -80,13 +80,13 @@ public class JwtUtil {
      * @param email User's email
      * @return JWT token for password reset
      */
-    public String generatePasswordResetToken(String email, String nationalId) {
+    public String generatePasswordResetToken(String email, String id) {
         String jti = UUID.randomUUID().toString();
         long resetTokenExpiration = RESET_TOKEN_TTL_MINUTES * MINUTES_TO_MILLIS; // 15 minutes for password reset
         return Jwts.builder()
                 .setSubject(email)
                 .claim("type", "PASSWORD_RESET")
-                .claim("nationalId", nationalId)
+                .claim("id", id)
                 .setId(jti)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + resetTokenExpiration))

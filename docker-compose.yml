@@ -127,8 +127,12 @@ services:
     environment:
       ACCEPT_EULA: "Y"
       SEQ_FIRSTRUN_NOAUTHENTICATION: "true"  # Disable authentication
+      # Try to enable GELF input
+      SEQ_GELF_ENABLED: "true"
+      SEQ_FIRSTRUN_ADMINUSERNAME: admin
+      SEQ_FIRSTRUN_ADMINPASSWORDHASH: # Leave empty for no password
     ports:
-      - "5341:80"         # Seq UI → http://localhost:5341
+      - "5341:80"         # Seq UI
     volumes:
       - ./seq-data:/data
     healthcheck:
@@ -146,7 +150,8 @@ services:
       SEQ_ADDRESS: "http://seq:5341"
       # SEQ_API_KEY: "<optional key from Seq UI>"
     ports:
-      - "12201:12201/udp" # GELF UDP (or expose TCP)
+      - "12201:12201/udp"  # GELF typically uses UDP
+      - "12201:12201/tcp"  # Also support TCP
     depends_on:
       seq:
         condition: service_healthy

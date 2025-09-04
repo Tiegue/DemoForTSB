@@ -199,5 +199,65 @@ Create AuthController (only login/register)
 Create TestController to verify it works
 Run tests to confirm everything works
 
+## @businessOperation add metrics in it,can automatically log + record Prometheus metrics per operation)? That way it’s not just logs, but also monitoring.
+use AOP to add buinessId operation, MDCFilter for reques-scoped technical context to provide generic request context OncePerRequestFilter.(traceId, correlationId, spanId, restUri)
+- MDCAspect, MDC.put and clear in it, also define log format, so do not need add log in real classes, just add annotaion @BusinessOperation to the class. the code will be clean.
+- MDCAspect, handle exception and log error.
+- MDCAspect, integrate with metric service to record metrics. 
+example:
+Dirty code
+```aiignore
+    @GetMapping("/admin-status")
+    public ResponseEntity<?> checkAdminStatus() {
+        String businessId = "check-admin-status";
+        MDC.put("businessId", businessId);
+        try {
+            Customer admin = customerRepository.findByNationalId(adminNationalId)
+                    .orElse(null);
 
+            Map<String, Object> status = new HashMap<>();
 
+            if (admin == null) {
+                status.put("exists", false);
+                status.put("message", "Admin user not found");
+            } else {
+                String maskNationalId = dataMaskingService.maskNationalId(admin.getNationalId());
+                status.put("exists", true);
+                status.put("email", admin.getEmail());
+                status.put("hasPassword", admin.getPasswordHash() != null && !admin.getPasswordHash().isEmpty());
+                status.put("isActive", admin.isActive());
+                status.put("nationalId", maskNationalId);
+            }
+
+            return ResponseEntity.ok(status);
+
+        } catch (Exception e) {
+            logger.error("Failed to check admin status", e);
+            return ResponseEntity.internalServerError()
+                    .body("Failed to check admin status");
+        }
+    }
+change to clean code
+```
+```aiignore
+    @GetMapping("/admin-status")
+    @BusinessOperation("check-admin-status")
+    public ResponseEntity<?> checkAdminStatus() {
+        String maskedNationalId = dataMaskingService.maskNationalId(adminNationalId);
+        
+        Customer admin = customerRepository.findByNationalId(adminNationalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", maskedNationalId));
+
+        Map<String, Object> status = Map.of(
+            "exists", true,
+            "email", admin.getEmail(),
+            "hasPassword", admin.getPasswordHash() != null && !admin.getPasswordHash().isEmpty(),
+            "nationalId", maskedNationalId);
+        
+        return ResponseEntity.ok(status);
+    }
+
+```
+In this controller/service method, do not need to write try/catch for logging.
+
+The method can just throw, and the aspect + a global exception handler will take care of logging and clean response.

@@ -104,32 +104,17 @@ public class SetupController {
     @GetMapping("/admin-status")
     @BusinessOperation("check-admin-status")
     public ResponseEntity<?> checkAdminStatus() {
-        String businessId = "check-admin-status";
-        MDC.put("businessId", businessId);
-        try {
-            Customer admin = customerRepository.findByNationalId(adminNationalId)
-                    .orElse(null);
+        String maskedNationalId = dataMaskingService.maskNationalId(adminNationalId);
 
-            Map<String, Object> status = new HashMap<>();
+        Customer admin = customerRepository.findByNationalId(adminNationalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", maskedNationalId));
 
-            if (admin == null) {
-                status.put("exists", false);
-                status.put("message", "Admin user not found");
-            } else {
-                String maskNationalId = dataMaskingService.maskNationalId(admin.getNationalId());
-                status.put("exists", true);
-                status.put("email", admin.getEmail());
-                status.put("hasPassword", admin.getPasswordHash() != null && !admin.getPasswordHash().isEmpty());
-                status.put("isActive", admin.isActive());
-                status.put("nationalId", maskNationalId);
-            }
+        Map<String, Object> status = Map.of(
+            "exists", true,
+            "email", admin.getEmail(),
+            "hasPassword", admin.getPasswordHash() != null && !admin.getPasswordHash().isEmpty(),
+            "nationalId", maskedNationalId);
 
-            return ResponseEntity.ok(status);
-
-        } catch (Exception e) {
-            logger.error("Failed to check admin status", e);
-            return ResponseEntity.internalServerError()
-                    .body("Failed to check admin status");
-        }
+        return ResponseEntity.ok(status);
     }
 }

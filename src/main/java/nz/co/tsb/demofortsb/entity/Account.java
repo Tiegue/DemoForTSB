@@ -120,4 +120,10 @@ public class Account {
     public void setCustomer(Customer customer) {
         this.customer = customer;
     }
+
+    // CustomerStatus enum
+    public enum AccountStatus {
+        ACTIVE, INACTIVE, SUSPENDED
+    }
+
 }

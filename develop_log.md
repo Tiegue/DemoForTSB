@@ -261,3 +261,9 @@ change to clean code
 In this controller/service method, do not need to write try/catch for logging.
 
 The method can just throw, and the aspect + a global exception handler will take care of logging and clean response.
+
+## account & transaction 
+- entities with builder
+- liquibase with test data
+- simple repository
+- 

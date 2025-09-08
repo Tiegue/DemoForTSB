@@ -235,6 +235,11 @@ public class CustomerService {
                 .orElse(false);
     }
 
+    // Check the customer id is existed
+    public boolean isCustomerExisted(Long customerId) {
+        return customerRepository.existsById(customerId);
+    }
+
     // ========== PRIVATE HELPER METHODS ==========
 
     private Customer buildCustomerFromRequest(CustomerRegistrationRequest request) {

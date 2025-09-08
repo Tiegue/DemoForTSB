@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.24.xsd">
+
+    <changeSet id="4-seed-customers" author="tiegue" context="local,docker">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="customer"/>
+        </preConditions>
+
+        <insert tableName="customer">
+            <column name="first_name" value="Tiegue"/>
+            <column name="last_name" value="Zhang"/>
+            <column name="email" value="tiegue303@example.com"/>
+            <column name="phone_number" value="+1234567890"/>
+            <column name="date_of_birth" valueDate="1978-03-03"/>
+            <column name="national_id" value="123456789"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="password_hash" value="$2a$12$Rn0.OZsB.WWH0YzNrsyHAuw6.8T5yhed10EF14Q2JHCV2FI.l1EMm"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+
+        <insert tableName="customer">
+            <column name="first_name" value="Tina"/>
+            <column name="last_name" value="Mu"/>
+            <column name="email" value="tinamooh@example.com"/>
+            <column name="phone_number" value="+0987654321"/>
+            <column name="date_of_birth" valueDate="1980-05-15"/>
+            <column name="national_id" value="987654321"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="password_hash" value="$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewfY7S0ue6E.FQJe"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+
+        <rollback>
+            <delete tableName="customer">
+                <where>national_id IN ('123456789','987654321')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+
+    <!-- ==================== Seed Data for Development/Testing ==================== -->
+    <changeSet id="5-seed-accounts" author="Tiegue" context="local,docker,dev">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="account"/>
+            <tableExists tableName="customer"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM account
+            </sqlCheck>
+        </preConditions>
+
+        <!-- Accounts for Tiegue (customer_id=1, nationalId=123456789) -->
+        <insert tableName="account">
+            <column name="customer_id" value="1"/>
+            <column name="account_number" value="ACC-100001-1234"/>
+            <column name="balance" value="5000.00"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+
+        <insert tableName="account">
+            <column name="customer_id" value="1"/>
+            <column name="account_number" value="ACC-100002-5678"/>
+            <column name="balance" value="2500.00"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+
+        <!-- Savings account for Tiegue -->
+        <insert tableName="account">
+            <column name="customer_id" value="1"/>
+            <column name="account_number" value="ACC-100003-9012"/>
+            <column name="balance" value="10000.00"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+
+        <!-- Accounts for Tina (customer_id=2, nationalId=987654321) -->
+        <insert tableName="account">
+            <column name="customer_id" value="2"/>
+            <column name="account_number" value="ACC-200001-3456"/>
+            <column name="balance" value="3000.00"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+
+        <insert tableName="account">
+            <column name="customer_id" value="2"/>
+            <column name="account_number" value="ACC-200002-7890"/>
+            <column name="balance" value="1500.00"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="status" value="ACTIVE"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+
+        <!-- Suspended account for Tina -->
+        <insert tableName="account">
+            <column name="customer_id" value="2"/>
+            <column name="account_number" value="ACC-200003-2468"/>
+            <column name="balance" value="500.00"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="status" value="SUSPENDED"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+    </changeSet>
+
+    <!-- ==================== Seed Transaction History ==================== -->
+    <changeSet id="6-seed-transactions" author="Tiegue" context="local,docker,dev">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="transaction"/>
+            <tableExists tableName="account"/>
+            <sqlCheck expectedResult="0">
+                SELECT COUNT(*) FROM transaction
+            </sqlCheck>
+        </preConditions>
+
+        <!-- Initial deposits for Tiegue's main account -->
+        <insert tableName="transaction">
+            <column name="account_id" value="1"/>
+            <column name="transaction_type" value="DEPOSIT"/>
+            <column name="amount" value="5000.00"/>
+            <column name="transaction_date" valueComputed="NOW() - INTERVAL '30 days'"/>
+            <column name="transaction_status" value="COMPLETED"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="created_at" valueComputed="NOW() - INTERVAL '30 days'"/>
+            <column name="updated_at" valueComputed="NOW() - INTERVAL '30 days'"/>
+        </insert>
+
+        <!-- Transfer from Tiegue account 1 to account 2 -->
+        <insert tableName="transaction">
+            <column name="account_id" value="1"/>
+            <column name="transaction_type" value="TRANSFER_OUT"/>
+            <column name="amount" value="500.00"/>
+            <column name="transaction_date" valueComputed="NOW() - INTERVAL '25 days'"/>
+            <column name="from_account_id" value="1"/>
+            <column name="to_account_id" value="2"/>
+            <column name="transaction_status" value="COMPLETED"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="created_at" valueComputed="NOW() - INTERVAL '25 days'"/>
+            <column name="updated_at" valueComputed="NOW() - INTERVAL '25 days'"/>
+        </insert>
+
+        <insert tableName="transaction">
+            <column name="account_id" value="2"/>
+            <column name="transaction_type" value="TRANSFER_IN"/>
+            <column name="amount" value="500.00"/>
+            <column name="transaction_date" valueComputed="NOW() - INTERVAL '25 days'"/>
+            <column name="from_account_id" value="1"/>
+            <column name="to_account_id" value="2"/>
+            <column name="transaction_status" value="COMPLETED"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="created_at" valueComputed="NOW() - INTERVAL '25 days'"/>
+            <column name="updated_at" valueComputed="NOW() - INTERVAL '25 days'"/>
+        </insert>
+
+        <!-- Withdrawal from Tiegue's account -->
+        <insert tableName="transaction">
+            <column name="account_id" value="1"/>
+            <column name="transaction_type" value="WITHDRAWAL"/>
+            <column name="amount" value="200.00"/>
+            <column name="transaction_date" valueComputed="NOW() - INTERVAL '20 days'"/>
+            <column name="transaction_status" value="COMPLETED"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="created_at" valueComputed="NOW() - INTERVAL '20 days'"/>
+            <column name="updated_at" valueComputed="NOW() - INTERVAL '20 days'"/>
+        </insert>
+
+        <!-- Deposit to Tina's account -->
+        <insert tableName="transaction">
+            <column name="account_id" value="4"/>
+            <column name="transaction_type" value="DEPOSIT"/>
+            <column name="amount" value="3000.00"/>
+            <column name="transaction_date" valueComputed="NOW() - INTERVAL '15 days'"/>
+            <column name="transaction_status" value="COMPLETED"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="created_at" valueComputed="NOW() - INTERVAL '15 days'"/>
+            <column name="updated_at" valueComputed="NOW() - INTERVAL '15 days'"/>
+        </insert>
+
+        <!-- Failed transaction example -->
+        <insert tableName="transaction">
+            <column name="account_id" value="5"/>
+            <column name="transaction_type" value="WITHDRAWAL"/>
+            <column name="amount" value="5000.00"/>
+            <column name="transaction_date" valueComputed="NOW() - INTERVAL '10 days'"/>
+            <column name="transaction_status" value="FAILED"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="created_at" valueComputed="NOW() - INTERVAL '10 days'"/>
+            <column name="updated_at" valueComputed="NOW() - INTERVAL '10 days'"/>
+        </insert>
+
+        <!-- Recent pending transaction -->
+        <insert tableName="transaction">
+            <column name="account_id" value="1"/>
+            <column name="transaction_type" value="DEPOSIT"/>
+            <column name="amount" value="1000.00"/>
+            <column name="transaction_date" valueComputed="NOW() - INTERVAL '1 hour'"/>
+            <column name="transaction_status" value="PENDING"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="created_at" valueComputed="NOW() - INTERVAL '1 hour'"/>
+            <column name="updated_at" valueComputed="NOW() - INTERVAL '1 hour'"/>
+        </insert>
+
+        <!-- Inner account transfer for Tiegue: from account 1 to account 3 (his savings) -->
+        <insert tableName="transaction">
+            <column name="account_id" value="1"/>
+            <column name="transaction_type" value="TRANSFER_OUT"/>
+            <column name="amount" value="1500.00"/>
+            <column name="transaction_date" valueComputed="NOW() - INTERVAL '7 days'"/>
+            <column name="from_account_id" value="1"/>
+            <column name="to_account_id" value="3"/>
+            <column name="transaction_status" value="COMPLETED"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="created_at" valueComputed="NOW() - INTERVAL '7 days'"/>
+            <column name="updated_at" valueComputed="NOW() - INTERVAL '7 days'"/>
+        </insert>
+
+        <insert tableName="transaction">
+            <column name="account_id" value="3"/>
+            <column name="transaction_type" value="TRANSFER_IN"/>
+            <column name="amount" value="1500.00"/>
+            <column name="transaction_date" valueComputed="NOW() - INTERVAL '7 days'"/>
+            <column name="from_account_id" value="1"/>
+            <column name="to_account_id" value="3"/>
+            <column name="transaction_status" value="COMPLETED"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="created_at" valueComputed="NOW() - INTERVAL '7 days'"/>
+            <column name="updated_at" valueComputed="NOW() - INTERVAL '7 days'"/>
+        </insert>
+
+        <!-- Inner account transfer for Tina: from account 4 to account 5 -->
+        <insert tableName="transaction">
+            <column name="account_id" value="4"/>
+            <column name="transaction_type" value="TRANSFER_OUT"/>
+            <column name="amount" value="750.00"/>
+            <column name="transaction_date" valueComputed="NOW() - INTERVAL '5 days'"/>
+            <column name="from_account_id" value="4"/>
+            <column name="to_account_id" value="5"/>
+            <column name="transaction_status" value="COMPLETED"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="created_at" valueComputed="NOW() - INTERVAL '5 days'"/>
+            <column name="updated_at" valueComputed="NOW() - INTERVAL '5 days'"/>
+        </insert>
+
+        <insert tableName="transaction">
+            <column name="account_id" value="5"/>
+            <column name="transaction_type" value="TRANSFER_IN"/>
+            <column name="amount" value="750.00"/>
+            <column name="transaction_date" valueComputed="NOW() - INTERVAL '5 days'"/>
+            <column name="from_account_id" value="4"/>
+            <column name="to_account_id" value="5"/>
+            <column name="transaction_status" value="COMPLETED"/>
+            <column name="currency_code" value="NZD"/>
+            <column name="created_at" valueComputed="NOW() - INTERVAL '5 days'"/>
+            <column name="updated_at" valueComputed="NOW() - INTERVAL '5 days'"/>
+        </insert>
+    </changeSet>
+
+    <!-- ==================== Rollback Support ==================== -->
+    <changeSet id="6-rollback-support" author="developer">
+        <tagDatabase tag="account-transaction-v1.0"/>
+    </changeSet>
+</databaseChangeLog>

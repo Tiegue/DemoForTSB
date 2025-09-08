@@ -16,8 +16,8 @@ public class Transaction {
     @Column(name = "account_id", nullable = false)
     private Long accountId;
 
-    @Column(name = "transaction_type", nullable = false, length = 20)
-    private String transactionType;
+    @Enumerated(EnumType.STRING)
+    private TransactionType transactionType;
 
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
@@ -31,8 +31,8 @@ public class Transaction {
     @Column(name = "to_account_id")
     private Long toAccountId;
 
-    @Column(name = "transaction_status", length = 20)
-    private String transactionStatus;
+    @Enumerated(EnumType.STRING)
+    private TransactionStatus transactionStatus;
 
     @Column(name = "currency_code", length = 3)
     private String currencyCode = "NZD";
@@ -43,17 +43,6 @@ public class Transaction {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", insertable = false, updatable = false)
-    private Account account;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "from_account_id", insertable = false, updatable = false)
-    private Account fromAccount;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "to_account_id", insertable = false, updatable = false)
-    private Account toAccount;
 
     @PrePersist
     protected void onCreate() {
@@ -89,11 +78,11 @@ public class Transaction {
         this.accountId = accountId;
     }
 
-    public String getTransactionType() {
+    public TransactionType getTransactionType() {
         return transactionType;
     }
 
-    public void setTransactionType(String transactionType) {
+    public void setTransactionType(TransactionType transactionType) {
         this.transactionType = transactionType;
     }
 
@@ -129,11 +118,11 @@ public class Transaction {
         this.toAccountId = toAccountId;
     }
 
-    public String getTransactionStatus() {
+    public TransactionStatus getTransactionStatus() {
         return transactionStatus;
     }
 
-    public void setTransactionStatus(String transactionStatus) {
+    public void setTransactionStatus(TransactionStatus transactionStatus) {
         this.transactionStatus = transactionStatus;
     }
 
@@ -161,27 +150,17 @@ public class Transaction {
         this.updatedAt = updatedAt;
     }
 
-    public Account getAccount() {
-        return account;
+    public enum TransactionType {
+        DEPOSIT,        // money added to the account
+        WITHDRAWAL,     // money taken out of the account
+        TRANSFER_IN,    // incoming transfer from another account
+        TRANSFER_OUT    // outgoing transfer to another account
     }
 
-    public void setAccount(Account account) {
-        this.account = account;
+    public enum TransactionStatus {
+        PENDING,     // Transaction created but not yet processed
+        COMPLETED,   // Successfully processed and funds moved
+        FAILED       // Attempted but failed (e.g., insufficient funds)
     }
 
-    public Account getFromAccount() {
-        return fromAccount;
-    }
-
-    public void setFromAccount(Account fromAccount) {
-        this.fromAccount = fromAccount;
-    }
-
-    public Account getToAccount() {
-        return toAccount;
-    }
-
-    public void setToAccount(Account toAccount) {
-        this.toAccount = toAccount;
-    }
 }

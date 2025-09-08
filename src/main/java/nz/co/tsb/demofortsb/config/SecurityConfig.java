@@ -81,6 +81,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/favicon.ico").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/api/accounts/**").permitAll()
 
                         // Only for dev stage, and then remove them
                         .requestMatchers("/api/setup/**").permitAll()

@@ -6,6 +6,8 @@ import nz.co.tsb.demofortsb.dto.response.TransactionResponse;
 import nz.co.tsb.demofortsb.entity.Account;
 import nz.co.tsb.demofortsb.entity.Customer;
 import nz.co.tsb.demofortsb.entity.Transaction;
+import nz.co.tsb.demofortsb.entity.TransactionBuilder;
+import nz.co.tsb.demofortsb.exception.Customer.CustomerNotFoundException;
 import nz.co.tsb.demofortsb.exception.ResourceNotFoundException;
 import nz.co.tsb.demofortsb.exception.ValidationException;
 import nz.co.tsb.demofortsb.repository.AccountRepository;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,7 +45,9 @@ public class  AccountService {
         log.info("Fetching accounts for customer ID: {}", customerId);
 
         // Verify customer exists
-        customerService.getCustomerById(customerId);
+        if (!customerService.isCustomerExisted(customerId)) {
+            throw new CustomerNotFoundException(customerId.toString());
+        }
 
         List<Account> accounts = accountRepository.findByCustomerId(customerId);
         return accounts.stream()
@@ -67,8 +72,9 @@ public class  AccountService {
         log.info("Fetching transactions for account ID: {}", accountId);
 
         // Verify account exists
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new ResourceNotFoundException("Account", accountId.toString()));
+        if (!accountRepository.existsByAccountId(accountId)) {
+            throw new ResourceNotFoundException("Account", accountId.toString());
+        }
 
         List<Transaction> transactions = transactionRepository.findAllTransactionsForAccount(accountId);
         return transactions.stream()
@@ -82,10 +88,14 @@ public class  AccountService {
     public List<TransactionResponse> getTransactionsByAccountNumber(String accountNumber) {
         log.info("Fetching transactions for account number: {}", accountNumber);
 
-        Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> new ResourceNotFoundException("Account", accountNumber));
+        // Verify account exists
+        if (!accountRepository.existsByAccountNumber(accountNumber)) {
+            throw new ResourceNotFoundException("Account", accountNumber);
+        } else {
+            Optional<Account> account = accountRepository.findByAccountNumber(accountNumber);
+            return getTransactionsByAccountId(account.get().getAccountId());
+        }
 
-        return getTransactionsByAccountId(account.getAccountId());
     }
 
     /**
@@ -93,7 +103,7 @@ public class  AccountService {
      */
     @Transactional
     public TransactionResponse transferBetweenAccounts(Long customerId, TransferRequest request) {
-        log.info("Processing transfer for customer ID: {} from {} to {} amount: {}",
+        log.debug("Processing transfer for customer ID: {} from {} to {} amount: {}",
                 customerId, request.getFromAccountNumber(), request.getToAccountNumber(), request.getAmount());
 
         // Validate transfer request
@@ -118,6 +128,7 @@ public class  AccountService {
             throw new ValidationException("Insufficient balance in source account");
         }
 
+
         // Perform the transfer
         fromAccount.setBalance(fromAccount.getBalance().subtract(request.getAmount()));
         toAccount.setBalance(toAccount.getBalance().add(request.getAmount()));
@@ -126,26 +137,32 @@ public class  AccountService {
         accountRepository.save(fromAccount);
         accountRepository.save(toAccount);
 
-        // Create transaction records
-        Transaction debitTransaction = createTransaction(
-                fromAccount.getAccountId(),
-                "DEBIT",
-                request.getAmount(),
-                fromAccount.getAccountId(),
-                toAccount.getAccountId(),
-                "COMPLETED"
-        );
-
-        Transaction creditTransaction = createTransaction(
-                toAccount.getAccountId(),
-                "CREDIT",
-                request.getAmount(),
-                fromAccount.getAccountId(),
-                toAccount.getAccountId(),
-                "COMPLETED"
-        );
-
+        // Create transaction records for debit
+        Transaction debitTransaction =  new TransactionBuilder()
+                .accountId(fromAccount.getAccountId())
+                .transactionType(Transaction.TransactionType.TRANSFER_OUT)
+                .amount(request.getAmount())
+                .fromAccountId(fromAccount.getAccountId())
+                .toAccountId(toAccount.getAccountId())
+                .status(Transaction.TransactionStatus.COMPLETED)
+                .currencyCode("NZD")
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
         transactionRepository.save(debitTransaction);
+
+        // Create transaction records for credit
+        Transaction creditTransaction =  new TransactionBuilder()
+                .accountId(toAccount.getAccountId())
+                .transactionType(Transaction.TransactionType.TRANSFER_IN)
+                .amount(request.getAmount())
+                .toAccountId(toAccount.getAccountId())
+                .status(Transaction.TransactionStatus.COMPLETED)
+                .currencyCode("NZD")
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
         Transaction savedCreditTransaction = transactionRepository.save(creditTransaction);
 
         log.info("Transfer completed successfully. Transaction ID: {}", savedCreditTransaction.getTransactionId());
@@ -179,7 +196,7 @@ public class  AccountService {
             throw new ValidationException("Account number already exists: " + accountNumber);
         }
 
-        Account account = new Account(customerId, accountNumber);
+        Account account = new Account(customerId);
         account.setBalance(initialBalance != null ? initialBalance : BigDecimal.ZERO);
 
         Account savedAccount = accountRepository.save(account);
@@ -188,17 +205,22 @@ public class  AccountService {
         return new AccountResponse(savedAccount);
     }
 
-    private Transaction createTransaction(Long accountId, String type, BigDecimal amount,
-                                          Long fromAccountId, Long toAccountId, String status) {
-        Transaction transaction = new Transaction();
-        transaction.setAccountId(accountId);
-        transaction.setTransactionType(type);
-        transaction.setAmount(amount);
-        transaction.setTransactionDate(LocalDateTime.now());
-        transaction.setFromAccountId(fromAccountId);
-        transaction.setToAccountId(toAccountId);
-        transaction.setTransactionStatus(status);
-        transaction.setCurrencyCode("NZD");
-        return transaction;
+    public List<Account> getAllAccountsForDebugging() {
+
+        return accountRepository.findAll();
     }
+
+//    private Transaction createTransaction(Long accountId, Transaction.TransactionType type, BigDecimal amount,
+//                                          Long fromAccountId, Long toAccountId, Transaction.TransactionStatus status) {
+//        Transaction transaction = new Transaction();
+//        transaction.setAccountId(accountId);
+//        transaction.setTransactionType(type);
+//        transaction.setAmount(amount);
+//        transaction.setTransactionDate(LocalDateTime.now());
+//        transaction.setFromAccountId(fromAccountId);
+//        transaction.setToAccountId(toAccountId);
+//        transaction.setTransactionStatus(status);
+//        transaction.setCurrencyCode("NZD");
+//        return transaction;
+//    }
 }

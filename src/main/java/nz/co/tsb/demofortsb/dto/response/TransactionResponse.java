@@ -18,7 +18,7 @@ public class TransactionResponse {
     private Long accountId;
 
     @Schema(description = "Transaction type", example = "TRANSFER")
-    private String transactionType;
+    private Transaction.TransactionType transactionType;
 
     @Schema(description = "Transaction amount", example = "100.00")
     private BigDecimal amount;
@@ -34,7 +34,7 @@ public class TransactionResponse {
     private Long toAccountId;
 
     @Schema(description = "Transaction status", example = "COMPLETED")
-    private String transactionStatus;
+    private Transaction.TransactionStatus transactionStatus;
 
     @Schema(description = "Currency code", example = "NZD")
     private String currencyCode;
@@ -70,11 +70,11 @@ public class TransactionResponse {
         this.accountId = accountId;
     }
 
-    public String getTransactionType() {
+    public Transaction.TransactionType getTransactionType() {
         return transactionType;
     }
 
-    public void setTransactionType(String transactionType) {
+    public void setTransactionType(Transaction.TransactionType transactionType) {
         this.transactionType = transactionType;
     }
 
@@ -110,11 +110,11 @@ public class TransactionResponse {
         this.toAccountId = toAccountId;
     }
 
-    public String getTransactionStatus() {
+    public Transaction.TransactionStatus getTransactionStatus() {
         return transactionStatus;
     }
 
-    public void setTransactionStatus(String transactionStatus) {
+    public void setTransactionStatus(Transaction.TransactionStatus transactionStatus) {
         this.transactionStatus = transactionStatus;
     }
 

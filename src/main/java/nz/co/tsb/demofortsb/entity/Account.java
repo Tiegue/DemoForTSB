@@ -3,6 +3,7 @@ package nz.co.tsb.demofortsb.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Random;
 
 @Entity
 @Table(name = "account")
@@ -25,15 +26,15 @@ public class Account {
     @Column(name = "currency_code", length = 3)
     private String currencyCode = "NZD";
 
+    @Enumerated(EnumType.STRING)
+    private AccountStatus status = AccountStatus.ACTIVE;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id", insertable = false, updatable = false)
-    private Customer customer;
 
     @PrePersist
     protected void onCreate() {
@@ -48,12 +49,19 @@ public class Account {
 
     // Constructors
     public Account() {}
-
-    public Account(Long customerId, String accountNumber) {
+    public Account(Long customerId) {
         this.customerId = customerId;
-        this.accountNumber = accountNumber;
+        this.accountNumber = generateAccountNumber();
         this.balance = BigDecimal.ZERO;
         this.currencyCode = "NZD";
+    }
+
+    protected static String generateAccountNumber() {
+        // Add timestamp or UUID component for uniqueness
+        long timestamp = System.currentTimeMillis();
+        int random = new Random().nextInt(9000) + 1000;
+        return String.format("ACC-%d-%04d", timestamp % 1000000, random);
+
     }
 
     // Getters and Setters
@@ -113,12 +121,9 @@ public class Account {
         this.updatedAt = updatedAt;
     }
 
-    public Customer getCustomer() {
-        return customer;
-    }
 
-    public void setCustomer(Customer customer) {
-        this.customer = customer;
+    public boolean isAccountActive() {
+        return AccountStatus.ACTIVE.equals(status);
     }
 
     // CustomerStatus enum

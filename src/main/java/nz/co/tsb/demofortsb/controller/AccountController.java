@@ -12,12 +12,16 @@ import jakarta.validation.Valid;
 import nz.co.tsb.demofortsb.dto.request.TransferRequest;
 import nz.co.tsb.demofortsb.dto.response.AccountResponse;
 import nz.co.tsb.demofortsb.dto.response.TransactionResponse;
+import nz.co.tsb.demofortsb.entity.Account;
+import nz.co.tsb.demofortsb.entity.Customer;
+import nz.co.tsb.demofortsb.logging.BusinessOperation;
 import nz.co.tsb.demofortsb.service.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,6 +37,20 @@ public class AccountController {
     @Autowired
     private AccountService accountService;
 
+    @Operation(summary = "Get all accounts with all info for debugging")
+    @GetMapping("/allinfo")
+    @BusinessOperation("get-all-accounts-allinfo-debugging")
+    public ResponseEntity<List<Account>> getAllAccountsForDebugging() {
+
+        log.info("Get all customers with all info for debugging");
+
+        List<Account> accounts = accountService.getAllAccountsForDebugging();
+
+        return ResponseEntity.ok(accounts);
+
+
+    }
+
     @Operation(summary = "Get all accounts for a customer",
             description = "Retrieve all accounts belonging to a specific customer by customer ID")
     @ApiResponses(value = {
@@ -42,7 +60,7 @@ public class AccountController {
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
     @GetMapping("/customer/{customerId}")
-    @PreAuthorize("hasRole('ADMIN') or #customerId == authentication.principal.id")
+    @PreAuthorize("hasRole('USER') or #customerId == authentication.principal.id")
     public ResponseEntity<List<AccountResponse>> getCustomerAccounts(
             @Parameter(description = "Customer ID", required = true)
             @PathVariable Long customerId) {
@@ -52,23 +70,14 @@ public class AccountController {
         return ResponseEntity.ok(accounts);
     }
 
-    @Operation(summary = "Get all accounts by national ID",
-            description = "Retrieve all accounts belonging to a customer by their national ID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Accounts retrieved successfully"),
-            @ApiResponse(responseCode = "404", description = "Customer not found"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized")
-    })
-    @GetMapping("/customer/national-id/{nationalId}")
-    @PreAuthorize("hasRole('ADMIN') or #nationalId == authentication.principal.nationalId")
-    public ResponseEntity<List<AccountResponse>> getAccountsByNationalId(
-            @Parameter(description = "National ID", required = true)
-            @PathVariable String nationalId) {
-
-        log.info("Fetching accounts for national ID: {}", nationalId);
-        List<AccountResponse> accounts = accountService.getAccountsByNationalId(nationalId);
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<List<AccountResponse>> getMyAccounts() {
+        Long customerId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        List<AccountResponse> accounts = accountService.getAccountsByCustomerId(customerId);
         return ResponseEntity.ok(accounts);
     }
+
 
     @Operation(summary = "Get all transactions for an account",
             description = "Retrieve all transactions for a specific account by account ID")
@@ -95,7 +104,7 @@ public class AccountController {
             @ApiResponse(responseCode = "404", description = "Account not found"),
             @ApiResponse(responseCode = "401", description = "Unauthorized")
     })
-    @GetMapping("/number/{accountNumber}/transactions")
+    @GetMapping("/accountnumber/{accountNumber}/transactions")
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     public ResponseEntity<List<TransactionResponse>> getTransactionsByAccountNumber(
             @Parameter(description = "Account number", required = true)
@@ -121,6 +130,16 @@ public class AccountController {
             @PathVariable Long customerId,
             @Valid @RequestBody TransferRequest request) {
 
+        log.info("Processing transfer for customer ID: {}", customerId);
+        TransactionResponse transaction = accountService.transferBetweenAccounts(customerId, request);
+        return ResponseEntity.ok(transaction);
+    }
+
+    @PostMapping("/me/transfer")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<TransactionResponse> transferBetweenAccounts(
+            @Valid @RequestBody TransferRequest request) {
+        Long customerId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         log.info("Processing transfer for customer ID: {}", customerId);
         TransactionResponse transaction = accountService.transferBetweenAccounts(customerId, request);
         return ResponseEntity.ok(transaction);

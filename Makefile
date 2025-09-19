@@ -111,4 +111,4 @@ kong-down:
 
 # Restart Kong
 kong-restart:
-	docker-compose -f docker-compose-kong.yml restart kong
+	docker-compose -f docker-compose-kong.yml restart

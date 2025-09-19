@@ -50,6 +50,5 @@ services:
       - demo
 networks:
   demo:
-    external: true
-    name: demofortsb_demo
+    driver: bridge
     #external: true # use the already-existing 'demo' network

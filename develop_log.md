@@ -266,4 +266,45 @@ The method can just throw, and the aspect + a global exception handler will take
 - entities with builder
 - liquibase with test data
 - simple repository
-- 
+
+# polish logging system while adding kong api gateway
+## IN MDCFfilter class,using kong's X-Request-id as correlation id, finally generates a new uuid if not exists.
+change the name X-Correlatio-id to X-Request-Id,as the name X-Request_Id is the better standard.
+so change related file: MDCFilter.java, logback-spring.yml
+
+## Micrometer Tracing manage traceId/spanId in spring boot.
+since you already run Grafana + Prometheus + Seq, the cleanest move is to add Grafana Tempo for traces and wire Spring’s Micrometer/OTel to it.
+
+
+# study and polish security implementation and login workflow
+current workflow is correct
+How the Authentication Flow Works:
+
+Login Request: When a user attempts to login in AuthController.login(), the method calls:
+
+java   authentication = authenticationManager.authenticate(
+new UsernamePasswordAuthenticationToken(email, request.getPassword())
+);
+
+Authentication Manager: The AuthenticationManager (configured in SecurityConfig) uses a ProviderManager with a DaoAuthenticationProvider.
+DaoAuthenticationProvider Configuration: In SecurityConfig.daoAuthenticationProvider():
+
+java   DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+provider.setUserDetailsService(customerUserDetailsService);
+provider.setPasswordEncoder(passwordEncoder());
+
+Behind the Scenes: When authenticate() is called, the DaoAuthenticationProvider automatically:
+
+Calls customerUserDetailsService.loadUserByUsername(email) to retrieve the user
+Compares the provided password with the stored password hash using BCrypt
+Returns an authenticated Authentication object if successful
+
+This reduces your database queries from 4 to 2:
+
+Before: Check exists → Check active → Authenticate (loadUserByUsername) → Get role → Get customer for response
+After: Authenticate (loadUserByUsername) → Get customer for response
+
+
+
+
+

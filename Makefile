@@ -100,3 +100,15 @@ obs-logs:
 
 obs-down:
 	docker compose stop prometheus grafana
+
+# Run kong and konga
+kong-up:
+	docker compose -f  docker-compose-kong.yml up -d
+
+# Stop kong and konga
+kong-down:
+	docker compose -f  docker-compose-kong.yml down
+
+# Restart Kong
+kong-restart:
+	docker-compose -f docker-compose-kong.yml restart kong

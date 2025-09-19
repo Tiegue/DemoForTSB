@@ -30,6 +30,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
@@ -84,31 +85,51 @@ public class AuthController {
             // Normalize email to lowercase
             String email = request.getEmail().toLowerCase();
 
-            // Find customer by email
-            Optional<Customer> customerOpt = customerService.findByEmail(email);
+//            // Find customer by email
+//            Optional<Customer> customerOpt = customerService.findByEmail(email);
+//
+//            if (customerOpt.isEmpty()) {
+//                logger.warn("Login attempt with non-existent email: {}", email);
+//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+//                        .body(new SuccessResponse("Invalid email or password"));
+//            }
+//
+//            Customer customer = customerOpt.get();
+//
+//
+//            // Check if customer is active
+//            if (!customer.isActive()) {
+//                logger.warn("Login attempt for inactive account: {}", email);
+//                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+//                        .body(new SuccessResponse("Account is not active. Please contact support."));
+//            }
+//---------  The above code is removed as it is not needed, AuthenticationManager will handle this, THIS IS SPRING SECURITY
+            // The DaoAuthenticationProvider will:
+            // 1. Call CustomerUserDetailsService.loadUserByUsername(email)
+            // 2. Check if user exists (throws UsernameNotFoundException if not)
+            // 3. Check if user is active (throws exception if not)
+            // 4. Validate password using BCrypt
 
-            if (customerOpt.isEmpty()) {
-                logger.warn("Login attempt with non-existent email: {}", email);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new SuccessResponse("Invalid email or password"));
-            }
-
-            Customer customer = customerOpt.get();
-
-
-            // Check if customer is active
-            if (!customer.isActive()) {
-                logger.warn("Login attempt for inactive account: {}", email);
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(new SuccessResponse("Account is not active. Please contact support."));
-            }
-
-            // Authenticate using email and password
+            // Authenticate using email and password (Spring Security handles everything)
             Authentication authentication;
             try {
                 authentication = authenticationManager.authenticate(
                         new UsernamePasswordAuthenticationToken(email, request.getPassword()));
             } catch (AuthenticationException e) {
+                // This catches both bad credentials and inactive accounts by loadUserByUsername in CustomerUserDetailsService
+                // Behind the scenes, authenticate calls  DaoAuthenticationProvider which automatically calls loadUserByUsername in CustomerUserDetailsService
+                // will throw an exception if the user is inactive or bad credentials
+
+                String message = e.getMessage();
+
+                // Check if the exception is due to an inactive account
+                if (message != null && message.contains("disabled")) {//disabled is defined in loadUserByUsername in CustomerUserDetailsService
+                    logger.warn("Login attempt for inactive account for email: {}", email);
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(new SuccessResponse("Account is not active. Please contact support."));
+                }
+
+                // Otherwise, it's a bad credentials
                 logger.warn("Failed login attempt for email: {}", email);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(new SuccessResponse("Invalid email or password"));
@@ -117,16 +138,35 @@ public class AuthController {
             // Set authentication in context
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // Generate JWT token // CHANGED: Removed rememberMe TTL logic
-            String role = userDetailsService.getUserRole(email);
+            // This will get the role from database, so it is not good for performance
+            // String role = userDetailsService.getUserRole(email);
+
+            // Extract role from the authenticated principal's authorities
+            // This avoids an extra database query
+            String role = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(GrantedAuthority::getAuthority)
+                    .orElse("ROLE_USER"); // Default to ROLE_USER if no role is found
+
+            // Generate JWT token
             String token = jwtUtil.generateToken(email, role); // CHANGED: Use default TTL
 
             // Calculate token expiration in seconds // CHANGED: Use JwtUtil's TTL
             long expiresIn = jwtUtil.getTokenTtlMinutes() * 60;
 
+            // Option 1: Get from service (one more DB query but cleaner)
+            Customer customer = customerService.findByEmail(email)
+                    .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
+
+
             // Create response
             CustomerReponse customerResponse = new CustomerReponse(customer);
-            LoginResponse loginResponse = new LoginResponse("Login successful", customerResponse, token, expiresIn);
+            LoginResponse loginResponse = new LoginResponse(
+                    "Login successful",
+                    customerResponse,
+                    token,
+                    expiresIn
+            );
 
             logger.info("Successful login for customer: {}", email);
             return ResponseEntity.ok(loginResponse);

@@ -18,23 +18,26 @@ import java.util.UUID;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class MDCFilter extends OncePerRequestFilter {
 
+    private static final String HDR_REQ_ID = "X-Request-Id";      // Kong correlation-id plugin
 
     @Override public void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws IOException, ServletException {
-        HttpServletRequest http = (HttpServletRequest) req;
-        String corrId = Optional.ofNullable(http.getHeader("X-Correlation-Id"))
-                .orElse(UUID.randomUUID().toString());
-        String traceId = corrId.replace("-", "");
-        String spanId = Optional.ofNullable(http.getHeader("X-Span-Id"))
-                .orElse(UUID.randomUUID().toString().replace("-", "").substring(0, 16));
-        String requestUri = http.getRequestURI();
 
-        MDC.put("correlationId", corrId);
+        // Prefer Kong's header; fallback to alternate; else generate
+        String reqId = Optional.ofNullable(req.getHeader(HDR_REQ_ID))
+                        .orElse(UUID.randomUUID().toString());
+
+        String traceId = reqId.replace("-", "");
+        String spanId = Optional.ofNullable(req.getHeader("X-Span-Id"))
+                .orElse(UUID.randomUUID().toString().replace("-", "").substring(0, 16));
+        String requestUri = req.getRequestURI();
+
+        MDC.put("reqId", reqId);
         MDC.put("traceId", traceId);
         MDC.put("spanId", spanId);
         MDC.put("requestUri", requestUri);
 
-        res.setHeader("X-Correlation-Id", corrId);
+        res.setHeader("X-Request-Id", reqId);
         res.setHeader("X-Trace-Id", traceId);
         res.setHeader("X-Span-Id", spanId);
         try { chain.doFilter(req, res); }

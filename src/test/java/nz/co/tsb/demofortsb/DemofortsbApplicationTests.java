@@ -10,9 +10,9 @@ import java.util.UUID;
 class DemofortsbApplicationTests {
     @BeforeEach
     void addMdc() {
-        String corrId = UUID.randomUUID().toString();
-        MDC.put("correlationId", "test-" + corrId);
-        MDC.put("traceId", corrId.replace("-", ""));
+        String reqId = UUID.randomUUID().toString();
+        MDC.put("reqId", "test-" + reqId);
+        MDC.put("traceId", reqId.replace("-", ""));
         MDC.put("spanId", UUID.randomUUID().toString().substring(0, 16));
     }
 

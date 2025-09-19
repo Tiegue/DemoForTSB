@@ -1,0 +1,173 @@
+_format_version: "3.0"
+_transform: true
+
+# Services define the backend APIs
+services:
+  - name: demofortsb-service
+    url: http://host.docker.internal:8080
+    retries: 5
+    connect_timeout: 60000
+    read_timeout: 60000
+    write_timeout: 60000
+
+    # Routes define the API endpoints
+    routes:
+      # Health check route (Public)
+      - name: health-route
+        paths:
+          - /actuator/health
+        strip_path: false
+        methods:
+          - GET
+          - POST
+
+      # Auth route (Public)
+      - name: auth-route
+        paths:
+          - /api/auth
+        strip_path: false
+        methods:
+          - GET
+          - POST
+
+      # Setup route (dev only)
+      - name: setup-route
+        paths:
+          - /api/setup
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+        plugins:
+          - name: key-auth
+            config:
+              key_names:
+                - apikey
+                - X-API-Key
+
+        # API docs route (Public)
+      - name: api-docs-route
+        paths:
+          - /v3/api-docs
+        strip_path: false
+        methods:
+          - GET
+
+    # Customer routes (will be protected later)
+      - name: customer-route
+        paths:
+          - /api/customers
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+        # Add API key authentication
+        plugins:
+          - name: key-auth
+            config:
+              key_names:
+                - apikey
+                - X-API-Key
+
+# Add global plugins
+plugins:
+  - name: rate-limiting
+    config:
+      minute: 10
+      hour: 100
+      policy: local
+      fault_tolerant: true
+      hide_client_headers: false
+# Test rate limiting (make 15 requests quickly)
+#  for i in {1..15}; do
+#  echo "Request $i:"
+#  curl -i http://localhost:8000/actuator/health 2>/dev/null | grep -E "HTTP|X-RateLimit"
+#  echo ""
+#  done
+
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - PATCH
+      headers:
+        - Accept
+        - Authorization
+        - Content-Type
+        - X-Requested-With
+      exposed_headers:
+        - X-Auth-Token
+        - X-Total-Count
+      credentials: true
+      max_age: 3600
+  # Test cors
+#  curl -i -X OPTIONS 'http://localhost:8000/actuator/health' \
+#  -H 'Origin: http://localhost:3000' \
+#  -H 'Access-Control-Request-Method: GET' \
+#  -H 'Access-Control-Request-Headers: Authorization, Content-Type'
+#  or test by:
+#  curl -i 'http://localhost:8000/actuator/health' \
+#  -H 'Origin: http://localhost:3000' \
+#  -H 'Authorization: Bearer <your-jwt>'
+
+  # Add Request ID
+  - name: correlation-id
+    config:
+      header_name: X-Request-Id
+      generator: uuid
+      echo_downstream: true
+# Test Request ID generation
+#  curl -i http://localhost:8000/api/health | grep -i "x-request-id"
+#
+#  # Make multiple requests - each should have unique ID
+#  for i in {1..3}; do
+#  echo "Request $i:"
+#  curl -i http://localhost:8000/api/health 2>/dev/null | grep -i "x-request-id"
+#  done
+
+  # Add Request-transformer
+
+  - name: request-transformer
+    config:
+      add:
+        headers:
+          - X-Kong-Proxy:true
+          - X-Forwarded-Prefix:/
+
+
+  # Add Response-transformer, protected headers
+#  - name: response-transformer
+#    config:
+#      add:
+#        headers:
+#          - X-Kong-Version:3.9
+#      remove:
+#        headers:
+#          - Server                 # Hide server software
+#          - X-Powered-By          # Hide technology stack
+#          - X-Application-Context # Hide Spring Boot details
+
+consumers:
+  - username: test-user
+    custom_id: test-user-001
+
+  - username: admin-user
+    custom_id: admin-001
+
+# Add API key credentials
+keyauth_credentials:
+  - consumer: test-user
+    key: test-user-key-12345
+  - consumer: admin-user
+    key: admin-api-key-67890

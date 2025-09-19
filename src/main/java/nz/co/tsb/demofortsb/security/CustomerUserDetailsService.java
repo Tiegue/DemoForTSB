@@ -52,10 +52,5 @@ public class CustomerUserDetailsService implements UserDetailsService {
                 .build();
     }
 
-    public String getUserRole(String email) {
-        Customer customer = customerRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        return ADMIN_NATIONAL_ID.equals(customer.getNationalId()) ? "ROLE_ADMIN" : "ROLE_USER";
-    }
 
 }

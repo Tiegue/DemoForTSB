@@ -304,7 +304,38 @@ This reduces your database queries from 4 to 2:
 Before: Check exists → Check active → Authenticate (loadUserByUsername) → Get role → Get customer for response
 After: Authenticate (loadUserByUsername) → Get customer for response
 
+# Improve login related. use record as login DTOs.
+two records:
+record LoginUserInfo
+record SecureLoginResponse
+...
+Pure Data Records (recommended):
+Records contain ONLY data fields
+Utility class provides computed methods
+Cleaner separation of concerns
 
+🚀 Why Records are PERFECT for Secure Login DTOs!
+You're absolutely right to suggest records! Here are the compelling reasons:
+✅ Security Benefits of Records
+
+Immutable by Design - Records can't be modified after creation, preventing accidental data exposure
+Compile-time Safety - All fields are final, eliminating security bugs from mutable state
+No Reflection Vulnerabilities - Records are more resistant to reflection-based attacks
+Clear Intent - Records signal "this is pure data, don't modify it"
+
+✅ Code Quality Benefits
+
+Concise - No boilerplate getters/setters/equals/hashCode
+Type Safety - Compiler enforces structure
+Modern Java - Best practices for Java 17+
+Self-Documenting - Structure is immediately clear
+
+✅ API Benefits
+
+Predictable JSON - Jackson handles records beautifully
+Factory Methods - Clean creation patterns like LoginUserInfo.from(customer)
+Computed Properties - Methods like displayName() and isExpired()
+Validation - Can add validation in compact constructors
 
 
 

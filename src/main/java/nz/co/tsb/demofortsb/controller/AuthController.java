@@ -11,13 +11,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import nz.co.tsb.demofortsb.dto.request.CustomerLoginRequest;
 import nz.co.tsb.demofortsb.dto.request.CustomerRegistrationRequest;
-import nz.co.tsb.demofortsb.dto.response.CustomerReponse;
-import nz.co.tsb.demofortsb.dto.response.LoginResponse;
-import nz.co.tsb.demofortsb.dto.response.SuccessResponse;
+import nz.co.tsb.demofortsb.dto.response.*;
 import nz.co.tsb.demofortsb.entity.Customer;
 import nz.co.tsb.demofortsb.exception.Customer.CustomerNotFoundException;
 import nz.co.tsb.demofortsb.exception.ValidationException;
-import nz.co.tsb.demofortsb.security.CustomerUserDetailsService;
 import nz.co.tsb.demofortsb.security.JwtUtil;
 import nz.co.tsb.demofortsb.service.CustomerService;
 import org.slf4j.Logger;
@@ -32,7 +29,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -49,32 +45,27 @@ import java.util.Optional;
 @Validated
 public class AuthController {
 
-
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
-    // REMOVED: private static final long REMEMBER_ME_TTL_MINUTES = 7 * 24 * 60; // ADDED: Constant for remember-me TTL
+    private final AuthenticationManager authenticationManager;
+    private final CustomerService customerService;
+    private final JwtUtil jwtUtil;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
-
-    @Autowired
-    private CustomerService customerService;
-
-    @Autowired
-    private CustomerUserDetailsService userDetailsService;
-
-    @Autowired
-    private JwtUtil jwtUtil;
-
-//    @Autowired
-//    private PasswordEncoder passwordEncoder;
+    public AuthController(AuthenticationManager authenticationManager,
+                          CustomerService customerService,
+                          JwtUtil jwtUtil
+    ) {
+        this.authenticationManager = authenticationManager;
+        this.customerService = customerService;
+        this.jwtUtil = jwtUtil;
+    }
 
     /**
      * Login endpoint - authenticates user and issues JWT
      */
     @Operation(summary = "User Login", description = "Authenticate user with email and password to receive a JWT token")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginResponse.class))),
+            @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = SecureLoginResponse.class))),
             @ApiResponse(responseCode = "401", description = "Invalid credentials", content = @Content(schema = @Schema(implementation = SuccessResponse.class))),
             @ApiResponse(responseCode = "403", description = "Account is not active", content = @Content(schema = @Schema(implementation = SuccessResponse.class))),
             @ApiResponse(responseCode = "500", description = "Internal server error", content = @Content(schema = @Schema(implementation = SuccessResponse.class)))
@@ -159,14 +150,18 @@ public class AuthController {
                     .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
 
 
-            // Create response
-            CustomerReponse customerResponse = new CustomerReponse(customer);
-            LoginResponse loginResponse = new LoginResponse(
-                    "Login successful",
-                    customerResponse,
-                    token,
-                    expiresIn
-            );
+            // Create SECURE login response using records - minimal data exposure
+            LoginUserInfo userInfo = LoginUserInfo.fromCustomer(customer);
+            SecureLoginResponse loginResponse = SecureLoginResponse.loginSuccess(userInfo, token, expiresIn);
+
+            //OLD RESPONSE contain more data than needed, not good for performance
+//            CustomerReponse customerResponse = new CustomerReponse(customer);
+//            LoginResponse loginResponse = new LoginResponse(
+//                    "Login successful",
+//                    customerResponse,
+//                    token,
+//                    expiresIn
+//            );
 
             logger.info("Successful login for customer: {}", email);
             return ResponseEntity.ok(loginResponse);

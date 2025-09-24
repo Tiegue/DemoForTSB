@@ -36,6 +36,11 @@ import jakarta.validation.Valid;
 import java.security.Principal;
 import java.util.Optional;
 
+
+// TODO: polish methods except login
+// https://claude.ai/chat/6ceadf3d-c6e4-4e8f-af8e-a96261a5d0cc
+// the codes in after: Now let me create the updated AuthController that uses the secure response:
+
 /**
  * Authentication Controller for handling login, registration, and logout operations
  */

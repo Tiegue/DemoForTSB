@@ -338,4 +338,9 @@ Computed Properties - Methods like displayName() and isExpired()
 Validation - Can add validation in compact constructors
 
 
+# https implementation guide by claude
+details see notion/kiwibank-api management junior role
+
+
+
 

@@ -17,6 +17,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.time.Duration;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
@@ -64,6 +66,14 @@ public class SecurityConfig {
 
         // Enable Security
         http
+                // Force HTTPS
+                .requiresChannel(channel ->
+                        channel.requestMatchers(r ->
+                                        r.getHeader("X-Forwarded-Proto") != null &&
+                                                r.getHeader("X-Forwarded-Proto").equals("http"))
+                                .requiresSecure()
+                )
+
                 // Configure authentication provider
                 .authenticationProvider(daoAuthenticationProvider())
 
@@ -103,6 +113,15 @@ public class SecurityConfig {
                         // All other endpoints require authentication
                         .anyRequest().authenticated() // From permitAll() to authenticated()
                 )
+
+                // add headers for HTTPS
+                .headers(headers -> headers
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .maxAgeInSeconds(31536000)
+                                .includeSubDomains(true)
+                                .preload(true))
+                )
+
                 .csrf(csrf -> csrf.disable())
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .formLogin(formLogin -> formLogin.disable())

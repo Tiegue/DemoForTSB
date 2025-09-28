@@ -11,6 +11,7 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -66,6 +67,16 @@ public class SecurityConfig {
 
         // Enable Security
         http
+
+                // add headers for HTTPS
+                .headers(headers -> headers
+                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .maxAgeInSeconds(31536000)
+                                .includeSubDomains(true)
+                                .preload(true))
+                )
+
                 // Force HTTPS
                 .requiresChannel(channel ->
                         channel.requestMatchers(r ->
@@ -112,14 +123,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/customers/**").hasAnyRole("USER", "ADMIN")
                         // All other endpoints require authentication
                         .anyRequest().authenticated() // From permitAll() to authenticated()
-                )
-
-                // add headers for HTTPS
-                .headers(headers -> headers
-                        .httpStrictTransportSecurity(hsts -> hsts
-                                .maxAgeInSeconds(31536000)
-                                .includeSubDomains(true)
-                                .preload(true))
                 )
 
                 .csrf(csrf -> csrf.disable())

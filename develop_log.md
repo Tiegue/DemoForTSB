@@ -340,6 +340,31 @@ Validation - Can add validation in compact constructors
 
 # https implementation guide by claude
 details see notion/kiwibank-api management junior role
+## configure java https
+Current Situation
+✅ What's Working:
+
+Spring Boot has HTTPS configured on port 9443 (local development)
+Kong exposes port 8443 for SSL in docker-compose
+HTTP endpoints work through Kong on port 8000
+
+❌ What's Missing:
+
+Kong doesn't have SSL certificates configured
+Kong service points to HTTP backend (not HTTPS)
+No SSL termination strategy defined
+## Complete Kong HTTPS Configuration
+1. Generate SSL Certificates
+2. Update docker-compose-kong.yml
+3. Update kong.yml for SSL Routes
+4. Update Application Configuration
+5. Update Security Configuration
+
+6. Testing Commands
+7. Production Considerations
+https://claude.ai/chat/08076a76-b33e-4c2b-b23a-7a92ee8b7519
+https://claude.ai/public/artifacts/3b908440-3e7d-46c1-ae45-1c4b335f9a45
+
 
 
 

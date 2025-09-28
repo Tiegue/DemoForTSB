@@ -1,6 +1,8 @@
 _format_version: "3.0"
 _transform: true
 
+# SSL Certificates in docker-compose-kong.yml
+
 # Services define the backend APIs
 services:
   - name: demofortsb-service
@@ -10,9 +12,11 @@ services:
     read_timeout: 60000
     write_timeout: 60000
 
+# Scale note: for real HA/backends, prefer upstreams/targets (Kong’s load balancer objects) instead of a single url.
+  #You’d define an upstream with multiple targets, then point the service to http://demofortsb-upstream.
     # Routes define the API endpoints
     routes:
-      # Health check route (Public)
+      # Health check route (Public) - HTTP & HTTPS
       - name: health-route
         paths:
           - /actuator/health
@@ -20,8 +24,11 @@ services:
         methods:
           - GET
           - POST
+        protocols:
+          - http
+          - https
 
-      # Auth route (Public)
+      # Auth route (Public) - HTTP & HTTPS
       - name: auth-route
         paths:
           - /api/auth
@@ -29,6 +36,9 @@ services:
         methods:
           - GET
           - POST
+        protocols:
+          - http
+          - https
 
       # Setup route (dev only)
       - name: setup-route
@@ -41,6 +51,9 @@ services:
           - PUT
           - DELETE
           - PATCH
+        protocols:
+          - http
+          - https
         plugins:
           - name: key-auth
             config:
@@ -55,9 +68,12 @@ services:
         strip_path: false
         methods:
           - GET
+        protocols:
+          - http
+          - https
 
-    # Customer routes (will be protected later)
-      - name: customer-route
+    # HTTPS-only routes for sensitive operations
+      - name: customer-route-https
         paths:
           - /api/customers
         strip_path: false
@@ -67,6 +83,8 @@ services:
           - PUT
           - DELETE
           - PATCH
+        protocols:
+          - https    # Force HTTPS for sensitive data
         # Add API key authentication
         plugins:
           - name: key-auth
@@ -77,6 +95,16 @@ services:
 
 # Add global plugins
 plugins:
+  # HTTP to HTTPS redirect
+  - name: request-transformer
+    config:
+      add:
+        headers:
+          - "X-Kong-Auth: shared-secret-12345"
+          - "X-Kong-Proxy: true"
+          - "X-Forwarded-Prefix: /"
+          - "X-Forwarded-Proto: https"
+
   - name: rate-limiting
     config:
       minute: 10
@@ -94,13 +122,16 @@ plugins:
   - name: cors
     config:
       origins:
-        - "*"
+        - "http://localhost:3000" # Allow for development
+        - "https://localhost:3000"
+        - "http://localhost:8443"
       methods:
         - GET
         - POST
         - PUT
         - DELETE
         - PATCH
+        - OPTIONS
       headers:
         - Accept
         - Authorization
@@ -135,15 +166,6 @@ plugins:
 #  echo "Request $i:"
 #  curl -i http://localhost:8000/api/health 2>/dev/null | grep -i "x-request-id"
 #  done
-
-  # Add Request-transformer
-
-  - name: request-transformer
-    config:
-      add:
-        headers:
-          - X-Kong-Proxy:true
-          - X-Forwarded-Prefix:/
 
 
   # Add Response-transformer, protected headers

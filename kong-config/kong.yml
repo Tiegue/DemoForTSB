@@ -100,10 +100,11 @@ plugins:
     config:
       add:
         headers:
-          - "X-Kong-Auth: shared-secret-12345"
-          - "X-Kong-Proxy: true"
-          - "X-Forwarded-Prefix: /"
-          - "X-Forwarded-Proto: https"
+          - "X-Kong-Test: route-level-working"
+#          - "X-Kong-Auth: shared-secret-12345"
+#          - "X-Kong-Proxy: true"
+#          - "X-Forwarded-Prefix: /"
+#          - "X-Forwarded-Proto: https"
 
   - name: rate-limiting
     config:

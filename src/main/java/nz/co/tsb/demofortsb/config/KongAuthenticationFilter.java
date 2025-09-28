@@ -35,6 +35,8 @@ public class KongAuthenticationFilter implements Filter {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
+
+
         String requestUri = httpRequest.getRequestURI();
         String method = httpRequest.getMethod();
 
@@ -50,9 +52,13 @@ public class KongAuthenticationFilter implements Filter {
             return;
         }
 
-        // Validate Kong authentication header
+        // Validate Kong authentication header, only for debugging.
         String kongAuth = httpRequest.getHeader(KONG_AUTH_HEADER);
         String kongProxy = httpRequest.getHeader(KONG_PROXY_HEADER);
+
+
+        logger.info("Kong Auth Header: {}", kongAuth);
+        logger.info("Kong Proxy Header: {}", kongProxy);
 
         if (!expectedSecret.equals(kongAuth)) {
             logger.warn("Unauthorized direct access attempt - Missing or invalid Kong auth header. " +

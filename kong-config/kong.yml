@@ -100,11 +100,10 @@ plugins:
     config:
       add:
         headers:
-          - "X-Kong-Test: route-level-working"
-#          - "X-Kong-Auth: shared-secret-12345"
-#          - "X-Kong-Proxy: true"
-#          - "X-Forwarded-Prefix: /"
-#          - "X-Forwarded-Proto: https"
+          - "X-Kong-Auth: shared-secret-12345"
+          - "X-Kong-Proxy: true"
+          - "X-Forwarded-Prefix: /"
+          - "X-Forwarded-Proto: https"
 
   - name: rate-limiting
     config:
@@ -119,7 +118,7 @@ plugins:
 #  curl -i http://localhost:8000/actuator/health 2>/dev/null | grep -E "HTTP|X-RateLimit"
 #  echo ""
 #  done
-
+#
   - name: cors
     config:
       origins:
@@ -154,11 +153,11 @@ plugins:
 #  -H 'Authorization: Bearer <your-jwt>'
 
   # Add Request ID
-  - name: correlation-id
-    config:
-      header_name: X-Request-Id
-      generator: uuid
-      echo_downstream: true
+#  - name: correlation-id
+#    config:
+#      header_name: X-Request-Id
+#      generator: uuid
+#      echo_downstream: true
 # Test Request ID generation
 #  curl -i http://localhost:8000/api/health | grep -i "x-request-id"
 #

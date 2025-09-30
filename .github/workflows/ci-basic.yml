@@ -6,44 +6,48 @@ on:
   pull_request:
     branches: [master]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   JAVA_VERSION: '21'
 
 jobs:
 
-  # Shared build job - compiles once
-  # Also can No build job, to save time
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: 'temurin'
-
-      - name: Cache Maven dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
-
-      - name: Build with Maven
-        run: mvn clean compile -Dspring.profiles.active=local -B
-
-      - name: Upload compiled classes
-        uses: actions/upload-artifact@v4
-        with:
-          name: compiled-classes
-          path: |
-            target/classes/
-            target/test-classes/
-          retention-days: 1
+  # Shared build job - compiles once, if build, all other jobs need to use this, and do not need to compile
+  # while few jobs, can use no build job, to save time, but need to compile in each job. comment out build job
+#  build:
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Set up JDK ${{ env.JAVA_VERSION }}
+#        uses: actions/setup-java@v4
+#        with:
+#          java-version: ${{ env.JAVA_VERSION }}
+#          distribution: 'temurin'
+#
+#      - name: Cache Maven dependencies
+#        uses: actions/cache@v4
+#        with:
+#          path: ~/.m2
+#          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: ${{ runner.os }}-maven-
+#
+#      - name: Build with Maven
+#        run: mvn clean compile -Dspring.profiles.active=local -B
+#
+#      - name: Upload compiled classes
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: compiled-classes
+#          path: |
+#            target/classes/
+#            target/test-classes/
+#          retention-days: 1
 
 
   # Job1: Build and Unit Tests via maven surefire plugin (no services needed)
@@ -82,7 +86,7 @@ jobs:
             **/target/surefire-reports/
           retention-days: 3
 
-  # Job2: Integration Tests (with Postgres and Redis)
+  # Job2: Integration Tests (with Postgres and Redis), even if no integration tests, can run, set in pom.xml
   integration-tests:
 #    needs: build
     runs-on: ubuntu-latest

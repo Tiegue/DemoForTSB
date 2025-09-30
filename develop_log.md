@@ -497,7 +497,7 @@ I don't know which one is best, and also I don't know these two plugins.
 **WOW, learn more, in Maven, surefire designed for unit test while failsafe for integration test.**
 #### Short version: Failsafe is wired to the right phases and failure-semantics for integration tests; Surefire isn’t.
 decided to use failsafe for integration test, add plugins in pom file, and CI very simple, just using verity,
-the learning document is notion kiwibank inteview page/integration test and unit test section
+the learning document is notion kiwibank inteview page/integration test and unit test section, both chatgpt and claude link in it.
 
 Here’s why Failsafe is preferred:
 

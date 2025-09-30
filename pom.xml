@@ -227,24 +227,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>3.2.5</version>
-<!--                <configuration>-->
-<!--                    <includes>-->
-<!--                        <include>**/*IT.java</include>-->
-<!--                        <include>**/*ITCase.java</include>-->
-<!--                    </includes>-->
-<!--                    &lt;!&ndash; Avoid failing when no ITs &ndash;&gt;-->
-<!--                    <failIfNoSpecifiedTests>false</failIfNoSpecifiedTests>-->
-<!--                </configuration>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        &lt;!&ndash; Runs after package, in integration-test and verify &ndash;&gt;-->
-<!--                        <goals>-->
-<!--                            <goal>integration-test</goal>-->
-<!--                            <goal>verify</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-
                 <executions>
                     <execution>
                         <goals>

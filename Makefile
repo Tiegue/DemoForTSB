@@ -120,4 +120,30 @@ kong-down-r:
 kong-restart:
 	docker-compose -f docker-compose-kong.yml restart
 
+# ---- Test Infrastructure ----
+.PHONY: test-services-up test-services-down test-services-wait
+
+# Start only db + redis for testing
+test-services-up:
+	docker compose up -d db redis
+
+# Wait for services to be ready
+test-services-wait:
+	@echo "⏳ Waiting for services..."
+	@until docker compose exec -T db pg_isready -U tsb -d demofortsb 2>/dev/null; do \
+		echo "  🔄 Waiting for PostgreSQL..."; \
+		sleep 2; \
+	done
+	@echo "  ✅ PostgreSQL is ready"
+	@until docker compose exec -T redis redis-cli -a redis123 ping 2>/dev/null | grep -q PONG; do \
+		echo "  🔄 Waiting for Redis..."; \
+		sleep 2; \
+	done
+	@echo "  ✅ Redis is ready"
+	@echo "✅ All services ready!"
+
+# Stop test services
+test-services-down:
+	docker compose stop db redis
+
 

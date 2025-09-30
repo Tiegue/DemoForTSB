@@ -30,6 +30,12 @@ jobs:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-maven-
 
+    # Start test services using command from Makefile
+    - name: Start test services
+      run: make test-services-up
+    - name: Wait for test services to be ready
+      run: make test-services-wait
+
     - name: Build with Maven
       run: mvn clean compile -Dspring.profiles.active=local -B
 

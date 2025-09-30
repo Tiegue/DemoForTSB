@@ -409,7 +409,7 @@ This is duplicate as compose file have postgres and redis. so jump to phase3
 
 ## Phase 3: First GitHub Actions Workflow 
 - Step 3.1: Create Simple CI Workflow
-- 
+add a test sections in docker-compose.yml, only control db and redis container, thus the CI would be very clean.
 
 
 

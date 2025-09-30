@@ -71,19 +71,28 @@ jobs:
         run: mvn clean compile -Dspring.profiles.active=local -B
 
       - name: Run unit tests
-        run: mvn test -Dtest=**/*Test -Dspring.profiles.active=local -B
+        run: mvn test -Dtest='**/*Test' -Dspring.profiles.active=local -B
 
       - name: Upload unit test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: unit-test-results
-          path: target/surefire-reports/
+          path: |
+            **/target/surefire-reports/
+          retention-days: 3
 
   # Job2: Integration Tests (with Postgres and Redis)
   integration-tests:
-    needs: build
+#    needs: build
     runs-on: ubuntu-latest
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/demofortsb
+      SPRING_DATASOURCE_USERNAME: tsb
+      SPRING_DATASOURCE_PASSWORD: tsb
+      SPRING_DATA_REDIS_HOST: localhost
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ""
 
     services:
       postgres:
@@ -103,7 +112,7 @@ jobs:
       redis:
         image: redis:7.0-alpine
         options: >-
-          --health-cmd "redis-cli ping"
+          --health-cmd "redis-cli ping | grep PONG"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -135,19 +144,15 @@ jobs:
 
       - name: Run integration tests via maven failsafe plugin
         run: mvn verify -Dspring.profiles.active=local -B
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/demofortsb
-          SPRING_DATASOURCE_USERNAME: tsb
-          SPRING_DATASOURCE_PASSWORD: tsb
-          SPRING_DATA_REDIS_HOST: localhost
-          SPRING_DATA_REDIS_PORT: 6379
-          SPRING_DATA_REDIS_PASSWORD: ""
+
 
       - name: Upload integration test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: integration-test-results
-          path: target/surefire-reports/
+          path: |
+            **/target/failsafe-reports/
+          retention-days: 3
 
   # Job3: Security Tests (runs in parallel)

@@ -367,7 +367,49 @@ https://claude.ai/public/artifacts/3b908440-3e7d-46c1-ae45-1c4b335f9a45
 https://claude.ai/chat/77193a35-a7d3-42b9-b3ed-29e30c845494
 
 
+# Step-by-Step CI/CD Implementation Guide
+https://claude.ai/public/artifacts/72358924-028d-4770-a916-700e9a5d0988
 
+## Phase 0: Prerequisites & Preparation (30 minutes)
+- Step 0.1 Verify Your Environment
+- Step 0.2 Prepare Your DemoFortsb Repository
+- Step 0.3 Create Directory Structure
+## Phase 1: Build Automation Scripts (1 hour)
+Should use local properties or docker properties, instead of default
+- Step 1.1 Create the Build Script
+- Step 1.2 Create the Test Script
+  - Add JaCoCo plugin to pom.xml.
+    JaCoCo Plugin Purpose
+    JaCoCo (Java Code Coverage) is a code coverage tool that measures how much of your code is actually tested by your unit tests.
+    What it does:
+    Tracks test coverage - Shows which lines of your code are executed during tests
+Generates reports - Creates HTML/XML reports showing:
+% of code covered by tests
+Which lines are tested (green) vs untested (red)
+Branch coverage (if/else statements)
+Coverage per class, package, and method
+Quality assurance - Helps you:
+Find untested code
+Ensure critical code paths have tests
+Meet coverage targets (e.g., "we need 80% coverage")
+
+Example Report:
+After running tests with JaCoCo, you get a report like:
+Service Layer:        85% coverage
+Controller Layer:     72% coverage
+UserService.java:     90% coverage ✅
+PaymentService.java:  45% coverage ⚠️
+**Maybe use Qodana instead of jacoco
+
+- Step 1.3 Create Wait-for-Services Script
+
+## Phase 2: Test Infrastructure Setup (1.5 hours)
+This is duplicate as compose file have postgres and redis. so jump to phase3
+- Step 2.1 Create Test Docker Compose
+
+## Phase 3: First GitHub Actions Workflow 
+- Step 3.1: Create Simple CI Workflow
+- 
 
 
 

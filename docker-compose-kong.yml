@@ -56,5 +56,5 @@ services:
       - demo
 networks:
   demo:
-    driver: bridge
-    #external: true # use the already-existing 'demo' network
+#    driver: bridge
+    external: true # use the already-existing 'demo' network

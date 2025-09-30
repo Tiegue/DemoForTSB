@@ -34,7 +34,7 @@ clean:
 	rm -rf target
 
 # ---- Docker / Compose ----
-.PHONY: docker-build up down logs ps
+.PHONY: docker-build up down down-r logs ps
 docker-build:
 	docker build -t $(IMAGE) .
 
@@ -43,6 +43,9 @@ up:
 
 down:
 	docker compose down -v
+
+down-r:
+	docker compose down -v --remove-orphans
 
 logs:
 	docker compose logs -f app
@@ -109,6 +112,12 @@ kong-up:
 kong-down:
 	docker compose -f  docker-compose-kong.yml down
 
+# Remove kong and konga
+kong-down-r:
+	docker compose -f  docker-compose-kong.yml down -v --remove-orphans
+
 # Restart Kong
 kong-restart:
 	docker-compose -f docker-compose-kong.yml restart
+
+

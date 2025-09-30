@@ -140,11 +140,12 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven-
 
-      - name: Download compiled classes
-        uses: actions/download-artifact@v4
-        with:
-          name: compiled-classes
-          path: target/
+# comment out if no build job, as no compiled classes, let maven compile
+#      - name: Download compiled classes
+#        uses: actions/download-artifact@v4
+#        with:
+#          name: compiled-classes
+#          path: target/
 
       - name: Run integration tests via maven failsafe plugin
         run: mvn verify -Dspring.profiles.active=local -B

@@ -12,6 +12,7 @@ env:
 jobs:
 
   # Shared build job - compiles once
+  # Also can No build job, to save time
   build:
     runs-on: ubuntu-latest
 
@@ -43,7 +44,7 @@ jobs:
             target/classes/
             target/test-classes/
           retention-days: 1
-  # No build job, to save time
+
 
   # Job1: Build and Unit Tests (no services needed)
   unit-tests:
@@ -80,5 +81,73 @@ jobs:
           path: target/surefire-reports/
 
   # Job2: Integration Tests (with Postgres and Redis)
+  integration-tests:
+    needs: build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: demofortsb
+          POSTGRES_USER: tsb
+          POSTGRES_PASSWORD: tsb
+        options: >-
+          --health-cmd "pg_isready -U tsb -d demofortsb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7.0-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      - name: Download compiled classes
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-classes
+          path: target/
+
+      - name: Run integration tests
+        run: mvn surefire:test -Dtest=**/*IT -Dspring.profiles.active=local -B
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/demofortsb
+          SPRING_DATASOURCE_USERNAME: tsb
+          SPRING_DATASOURCE_PASSWORD: tsb
+          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_DATA_REDIS_PORT: 6379
+          SPRING_DATA_REDIS_PASSWORD: ""
+
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: target/surefire-reports/
 
   # Job3: Security Tests (runs in parallel)

@@ -46,7 +46,7 @@ jobs:
           retention-days: 1
 
 
-  # Job1: Build and Unit Tests (no services needed)
+  # Job1: Build and Unit Tests via maven surefire plugin (no services needed)
   unit-tests:
     runs-on: ubuntu-latest
 
@@ -133,8 +133,8 @@ jobs:
           name: compiled-classes
           path: target/
 
-      - name: Run integration tests
-        run: mvn surefire:test -Dtest=**/*IT -Dspring.profiles.active=local -B
+      - name: Run integration tests via maven failsafe plugin
+        run: mvn verify -Dspring.profiles.active=local -B
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/demofortsb
           SPRING_DATASOURCE_USERNAME: tsb

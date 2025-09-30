@@ -412,7 +412,7 @@ This is duplicate as compose file have postgres and redis. so jump to phase3
 add a test sections in docker-compose.yml, only control db and redis container, thus the CI would be very clean.
 
 ## Phase 4: Parallel Execution
-**NO BUILD** THIS IS A TRICKY,explain later
+### workflow
 Parallel Execution Flow:
 ```
 ┌─────────────────────────────────────┐
@@ -486,3 +486,45 @@ Cache hit! Dependencies already downloaded: 10 seconds
 Compiles code: 30-60 seconds
 
 Total per job: ~1 minute compile time ✅
+**If have build section, all following tests should add needs build
+### Add integration test issue
+#### No integration tests error
+I have not write ingretion tests so when run it, error occurs.
+solution:
+- option1: add a false: 
+- option2: unit test use maven-surefire-plugin, integration test use maven-failsafe-plugin, chatgpt recommended this.
+I don't know which one is best, and also I don't know these two plugins.
+**WOW, learn more, in Maven, surefire designed for unit test while failsafe for integration test.**
+#### Short version: Failsafe is wired to the right phases and failure-semantics for integration tests; Surefire isn’t.
+decided to use failsafe for integration test, add plugins in pom file, and CI very simple, just using verity,
+the learning document is notion kiwibank inteview page/integration test and unit test section
+
+Here’s why Failsafe is preferred:
+
+Correct lifecycle phase
+
+Surefire runs in the test phase → before your app is packaged. That’s ideal for unit tests that run against classes on the test classpath.
+
+Failsafe runs goals in integration-test and verify → after package. That’s ideal for integration tests that hit the packaged artifact (e.g., fat JAR, WAR) or a running service.
+
+Setup/teardown slots
+
+The Maven lifecycle gives you pre-integration-test → integration-test → post-integration-test.
+
+With Failsafe, you can spin up dependencies (Docker, Testcontainers, DB migrations) in pre-integration-test, run ITs, then always tear down in post-integration-test.
+
+Fail-safe failure behavior
+
+If a Surefire test fails in test, the build stops immediately—your teardown (if any) may never run.
+
+Failsafe records failures and still executes post-integration-test (so your containers/services are cleaned up), then fails the build in verify. Hence the name “fail-safe”.
+
+Naming conventions
+
+Surefire matches *Test, *Tests, *TestCase by default.
+
+Failsafe matches *IT, *ITCase by default, which keeps unit and integration tests clearly separated without extra config.
+
+Intended usage
+
+The Maven team designed Surefire = unit tests, Failsafe = integration/system/acceptance tests. You can force Surefire to run *IT, but you lose the lifecycle and failure semantics that make integration testing reliable.

@@ -1,0 +1,51 @@
+# This is a basic CI pipeLine, run successfully
+name: Basic CI PipeLine
+
+on:
+push:
+branches: [feature/cicd-implementation]
+pull_request:
+branches: [master]
+
+env:
+JAVA_VERSION: '21'
+
+jobs:
+build:
+runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+
+    - name: Cache Maven dependecies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-maven-
+
+    # Start test services using command from Makefile
+    - name: Start test services
+      run: make test-services-up
+    - name: Wait for test services to be ready
+      run: make test-services-wait
+
+    - name: Build with Maven
+      run: mvn clean compile -Dspring.profiles.active=local -B
+
+    - name: Run tests
+      run: mvn test -Dspring.profiles.active=local -B
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: target/surefire-reports/

@@ -121,6 +121,7 @@ kong-restart:
 	docker-compose -f docker-compose-kong.yml restart
 
 # ---- Test Infrastructure ----
+# ---- This section is used by CI ----
 .PHONY: test-services-up test-services-down test-services-wait
 
 # Start only db + redis for testing

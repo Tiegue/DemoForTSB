@@ -528,3 +528,5 @@ Failsafe matches *IT, *ITCase by default, which keeps unit and integration tests
 Intended usage
 
 The Maven team designed Surefire = unit tests, Failsafe = integration/system/acceptance tests. You can force Surefire to run *IT, but you lose the lifecycle and failure semantics that make integration testing reliable.
+
+**add concurent to CI"

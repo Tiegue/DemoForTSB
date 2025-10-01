@@ -68,6 +68,8 @@ public class JwtUtil {
         return Jwts.builder()
                 .setSubject(email)
                 .claim("role", role)
+                .claim("iss", "demofortsb-jwt-key")// for kong jwt plugin
+                .claim("jti", jti)
                 .setId(jti)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))

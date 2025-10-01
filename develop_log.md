@@ -342,6 +342,26 @@ Validation - Can add validation in compact constructors
 details see notion/kiwibank-api management junior role
 ## configure java https
 Current Situation
+**SET KongAuthenticationFilter ORDER ONLY AFTER MDCFfilter
+```aiignore
+Request arrives
+    ↓
+1. MDCFilter (HIGHEST_PRECEDENCE)
+   └─> Sets MDC context: reqId, traceId, spanId, requestUri
+       └─> From this point: ALL logs include correlation IDs
+           ↓
+2. KongAuthenticationFilter (HIGHEST_PRECEDENCE + 1)
+   └─> Checks Kong headers
+       └─> logger.warn("Direct access blocked...") ← Has correlation context! ✅
+           ↓
+3. Spring Security FilterChain
+   └─> CSRF, CORS, etc.
+       ↓
+4. JwtAuthFilter (LOWEST_PRECEDENCE or manual order)
+   └─> Validates JWT
+       ↓
+5. Your Controller
+```
 ✅ What's Working:
 
 Spring Boot has HTTPS configured on port 9443 (local development)
@@ -530,3 +550,151 @@ Intended usage
 The Maven team designed Surefire = unit tests, Failsafe = integration/system/acceptance tests. You can force Surefire to run *IT, but you lose the lifecycle and failure semantics that make integration testing reliable.
 
 **add concurent to CI"
+
+
+# add jwt plugin in Kong
+- step1: jwt plugin, set key_claim_name iss
+- step2: add jwt consumer, 
+```
+- username: jwt-user
+  custom_id: jwt-user-001
+  jwt_secrets:
+  - key: demofortsb-jwt-key
+   CRITICAL: This secret MUST match your Spring Boot JWT_SECRET
+      secret: "$2a$12$Rn0.OZsB.WWH0YzNrsyHAuw6.8T5yhed10EF14Q2JHCV2FI.l1EMm"
+      algorithm: HS256
+```
+- step3: in jwtUtil.java, add claim in jwttoken: claim ("iss","demofortsb-jwt-key")
+- test command
+```aiignore
+TOKEN=$(curl -k -s -X POST https://localhost:8443/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"tiegue303@example.com","password":"password123!"}' \
+  | jq -r '.token') && \
+curl -k -i https://localhost:8443/api/customers/allinfo \
+  -H "Authorization: Bearer $TOKEN"
+```
+```aiignore
+HTTP/1.1 200 
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+X-RateLimit-Remaining-Hour: 99
+X-RateLimit-Limit-Hour: 100
+RateLimit-Reset: 11
+RateLimit-Remaining: 9
+RateLimit-Limit: 10
+X-RateLimit-Limit-Minute: 10
+X-RateLimit-Remaining-Minute: 9
+X-Request-Id: 7e3a4334-2dfd-4ff4-ada3-f66af8da4f7a
+X-Trace-Id: 7e3a43342dfd4ff4ada3f66af8da4f7a
+X-Span-Id: 1b8bcf744db6448c
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Date: Wed, 01 Oct 2025 21:01:49 GMT
+Server: kong/3.9.1
+vary: Origin
+Access-Control-Allow-Credentials: true
+Access-Control-Expose-Headers: X-Auth-Token,X-Total-Count
+X-Kong-Upstream-Latency: 486
+X-Kong-Proxy-Latency: 4
+Via: 1.1 kong/3.9.1
+X-Kong-Request-Id: b977b320db6c60344c338227b0675003
+
+[ {
+  "id" : 1,
+  "firstName" : "Tiegue",
+  "lastName" : "Zhang",
+  "email" : "tiegue303@example.com",
+  "phoneNumber" : "+1234567890",
+  "dateOfBirth" : "1978-03-03",
+  "nationalId" : "123456789",
+  "status" : "ACTIVE",
+  "createdAt" : "2025-10-02T09:51:14.182409",
+  "updatedAt" : "2025-10-02T09:51:19.194366",
+  "passwordHash" : "$2a$12$BFDuI.HAS7m3LOjghrKqQuLN/bbfQl/3Hw6HLiFZhIyPi7TytgV0O",
+  "password" : null,
+  "active" : true,
+  "fullName" : "Tiegue Zhang"
+}, {
+  "id" : 2,
+  "firstName" : "Tina",
+  "lastName" : "Mu",
+  "email" : "tinamooh@example.com",
+  "phoneNumber" : "+0987654321",
+  "dateOfBirth" : "1980-05-15",
+  "nationalId" : "987654321",
+  "status" : "ACTIVE",
+  "createdAt" : "2025-10-02T09:51:14.182409",
+  "updatedAt" : "2025-10-02T09:51:20.059273",
+  "passwordHash" : "$2a$12$d5Ez9wpn/Hb.baiIuO5lROikfGWA06zgjEoBcMCEzjm0GA22QUrs2",
+  "password" : null,
+  "active" : true,
+  "fullName" : "Tina Mu"
+} ]%      
+```
+# set up Pormethueus monitoring for Kong
+- Step 1: Enable Kong Prometheus Plugin
+```aiignore
+  - name: prometheus
+    config:
+      # Metrics to collect
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+      upstream_health_metrics: true
+      
+      # Per-consumer metrics (JWT users)
+      per_consumer: true
+```
+- Step 2: Update Prometheus Configuration
+```aiignore
+  # Kong API Gateway metrics - NEW!
+  - job_name: "kong"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:8001"]  # Kong Admin API
+    # Labels to identify Kong
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: kong-gateway
+    # Scrape more frequently for real-time API metrics
+    scrape_interval: 5s
+```
+- Step3: Create Kong Grafana Dashboard
+kong-dashboard.json add to grafana/../json/
+```aiignore
+┌─────────────────────────────────────────────────────────────────┐
+│                         Prometheus                              │
+│                                                                 │
+│  Scrapes TWO different endpoints:                              │
+│                                                                 │
+│  1. Kong Metrics         2. Spring Boot Metrics                │
+│     ↓                       ↓                                   │
+└─────┼───────────────────────┼───────────────────────────────────┘
+      │                       │
+      │                       │
+      ↓                       ↓
+┌─────────────────┐    ┌──────────────────┐
+│  Kong Gateway   │    │  Spring Boot App │
+│  Port 8001      │    │  Port 8080       │
+│  /metrics       │    │  /actuator/      │
+│                 │    │   prometheus     │
+└─────────────────┘    └──────────────────┘
+      │
+      │ Proxies API requests
+      ↓
+┌─────────────────┐
+│  Spring Boot    │
+│  Port 8080      │
+│  /api/*         │
+└─────────────────┘
+```
+https://claude.ai/chat/23233dd7-0ce3-4d96-bb50-2288cda9f1a8
+
+## at the same time make KongAuthenticationFilter.java very clean, leave old code in it just for study.

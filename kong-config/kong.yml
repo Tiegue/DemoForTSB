@@ -100,7 +100,7 @@ services:
                 - jwt
               cookie_names: []
               header_names:
-                - Authorization
+                - authorization
 
               # JWT Claims to be verified
               claims_to_verify:
@@ -138,6 +138,7 @@ services:
               claims_to_verify:
                 - exp
               secret_is_base64: false
+              key_claim_name: iss
 #              anonymous: false
               run_on_preflight: true
 
@@ -161,8 +162,22 @@ consumers:
     keyauth_credentials:
       - key: admin-api-key-67890
 
-# Add global plugins
+# ===========================================
+# GLOBAL PLUGINS
+# ===========================================
 plugins:
+  # Prometheus metrics
+  - name: prometheus
+    config:
+      # Metrics to collect
+      status_code_metrics: true
+      latency_metrics: true
+      bandwidth_metrics: true
+      upstream_health_metrics: true
+
+      # Per-consumer metrics (JWT users)
+      per_consumer: true
+
   # HTTP to HTTPS redirect
   - name: request-transformer
     config:
@@ -193,7 +208,6 @@ plugins:
         - "http://localhost:3000" # Allow for development
         - "https://localhost:3000"
         - "http://localhost:8443"
-        - "http://localhost:8001"
       methods:
         - GET
         - POST
@@ -222,11 +236,11 @@ plugins:
 #  -H 'Authorization: Bearer <your-jwt>'
 
   # Add Request ID
-#  - name: correlation-id
-#    config:
-#      header_name: X-Request-Id
-#      generator: uuid
-#      echo_downstream: true
+  - name: correlation-id
+    config:
+      header_name: X-Request-Id
+      generator: uuid # only used if client didn’t send one
+      echo_downstream: true
 # Test Request ID generation
 #  curl -i http://localhost:8000/api/health | grep -i "x-request-id"
 #

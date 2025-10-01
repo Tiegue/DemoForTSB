@@ -1,3 +1,12 @@
+
+## ✅ Summary of Commands using branch kafka-basic replace master
+
+```bash
+git checkout kafka-basic
+git pull origin kafka-basic            # optional
+git branch -f master kafka-basic
+git checkout master
+git push origin master --force
 # demo-for-tsb development log
 
 ```

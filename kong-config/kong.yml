@@ -12,10 +12,12 @@ services:
     read_timeout: 60000
     write_timeout: 60000
 
-# Scale note: for real HA/backends, prefer upstreams/targets (Kong’s load balancer objects) instead of a single url.
-  #You’d define an upstream with multiple targets, then point the service to http://demofortsb-upstream.
     # Routes define the API endpoints
     routes:
+      # ===========================================
+      # PUBLIC ROUTES (No Authentication Required)
+      # ===========================================
+
       # Health check route (Public) - HTTP & HTTPS
       - name: health-route
         paths:
@@ -72,6 +74,10 @@ services:
           - http
           - https
 
+    # ===========================================
+    # PROTECTED ROUTES (Authentication Required)
+    # ===========================================
+
     # HTTPS-only routes for sensitive operations
       - name: customer-route-https
         paths:
@@ -87,11 +93,73 @@ services:
           - https    # Force HTTPS for sensitive data
         # Add API key authentication
         plugins:
-          - name: key-auth
+          - name: jwt
             config:
-              key_names:
-                - apikey
-                - X-API-Key
+              # Header name where JWT token is expected
+              uri_param_names:
+                - jwt
+              cookie_names: []
+              header_names:
+                - Authorization
+
+              # JWT Claims to be verified
+              claims_to_verify:
+                - exp
+
+              # JWT Secret (Must match Spring Boot JWT secret)
+              secret_is_base64: false
+              key_claim_name: iss
+
+              # Anonymous consumer for requests without JWT
+#              anonymous: false
+
+              # Run JWT validation even if consumer already authenticated
+              run_on_preflight: true
+
+      # Account routes - JWT VALIDATION REQUIRED
+      - name: account-route
+        paths:
+          - /api/accounts
+        strip_path: false
+        methods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+        protocols:
+          - https    # Force HTTPS for sensitive data
+
+        plugins:
+          - name: jwt
+            config:
+              header_names:
+                - authorization
+              claims_to_verify:
+                - exp
+              secret_is_base64: false
+#              anonymous: false
+              run_on_preflight: true
+
+# ===========================================
+# JWT CONSUMERS & CREDENTIALS
+# ===========================================
+
+consumers:
+  # Consumer for JWT validation
+  - username: jwt-user
+    custom_id: jwt-user-001
+    jwt_secrets:
+      - key: demofortsb-jwt-key
+    # CRITICAL: This secret MUST match your Spring Boot JWT_SECRET
+        secret: "$2a$12$Rn0.OZsB.WWH0YzNrsyHAuw6.8T5yhed10EF14Q2JHCV2FI.l1EMm"
+        algorithm: HS256
+
+  - username: admin-user
+    custom_id: admin-user-001
+        # Keep API key credentials for setup endpoints
+    keyauth_credentials:
+      - key: admin-api-key-67890
 
 # Add global plugins
 plugins:
@@ -125,6 +193,7 @@ plugins:
         - "http://localhost:3000" # Allow for development
         - "https://localhost:3000"
         - "http://localhost:8443"
+        - "http://localhost:8001"
       methods:
         - GET
         - POST
@@ -180,16 +249,3 @@ plugins:
 #          - X-Powered-By          # Hide technology stack
 #          - X-Application-Context # Hide Spring Boot details
 
-consumers:
-  - username: test-user
-    custom_id: test-user-001
-
-  - username: admin-user
-    custom_id: admin-001
-
-# Add API key credentials
-keyauth_credentials:
-  - consumer: test-user
-    key: test-user-key-12345
-  - consumer: admin-user
-    key: admin-api-key-67890

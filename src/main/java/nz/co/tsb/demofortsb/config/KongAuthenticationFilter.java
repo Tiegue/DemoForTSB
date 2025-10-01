@@ -18,7 +18,7 @@ import java.io.IOException;
  */
 @Component
 @Order(1) // Execute before other filters
-public class KongAuthenticationFilter implements Filter {
+public class KongAuthenticationFilter implements org.hibernate.Filter {
 
     private static final Logger logger = LoggerFactory.getLogger(KongAuthenticationFilter.class);
 
